@@ -19,12 +19,6 @@ class NexiusTeleop(Node):
         self.base_linear = 0.15   # m/s
         self.base_angular = 1.0   # rad/s
 
-        # Dynamic speed multiplier
-        self.speed_multiplier = 1.0
-        self.min_mult = 0.2
-        self.max_mult = 3.0
-        self.mult_step = 0.2
-
         # Last joystick state
         self.last_axes = [0.0, 0.0]
         self.last_buttons = []
@@ -53,28 +47,10 @@ class NexiusTeleop(Node):
         self.last_buttons = list(msg.buttons)
 
     def handle_button_press(self, idx: int):
-        # Button index mapping (typical Android/Xbox-style gamepad)
-        BTN_A = 0
-        BTN_B = 1
-        BTN_X = 2
-        BTN_Y = 3
+        # Button Y triggers celebration spin
+        BTN_X = 3
 
-        if idx == BTN_A:
-            # Emergency stop
-            self.celebration_time_left = 0.0
-            self.publish_stop()
-            self.get_logger().info('Emergency STOP pressed')
-        elif idx == BTN_B:
-            # Speed up
-            self.speed_multiplier = min(self.max_mult,
-                                        self.speed_multiplier + self.mult_step)
-            self.get_logger().info(f'Speed UP  -> x{self.speed_multiplier:.1f}')
-        elif idx == BTN_X:
-            # Speed down
-            self.speed_multiplier = max(self.min_mult,
-                                        self.speed_multiplier - self.mult_step)
-            self.get_logger().info(f'Speed DOWN -> x{self.speed_multiplier:.1f}')
-        elif idx == BTN_Y:
+        if idx == BTN_X:
             # 3x 360° celebration spin
             total_angle = 3.0 * 2.0 * math.pi  # 3 full rotations
             self.celebration_time_left = total_angle / self.celebration_speed
@@ -101,13 +77,10 @@ class NexiusTeleop(Node):
                 if abs(angular_input) < dead:
                     angular_input = 0.0
 
-                twist.linear.x = self.base_linear * self.speed_multiplier * linear_input
-                twist.angular.z = self.base_angular * self.speed_multiplier * angular_input
+                twist.linear.x = self.base_linear * linear_input
+                twist.angular.z = self.base_angular * angular_input
 
         self.cmd_pub.publish(twist)
-
-    def publish_stop(self):
-        self.cmd_pub.publish(Twist())
 
 
 def main(args=None):
