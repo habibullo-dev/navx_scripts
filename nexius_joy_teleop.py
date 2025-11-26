@@ -67,8 +67,8 @@ class NexiusTeleop(Node):
             # Normal driving with left stick
             if len(self.last_axes) >= 2:
                 # axes[1] = forward/back, axes[0] = left/right (typical)
-                linear_input = self.last_axes[1]
-                angular_input = self.last_axes[0]
+                linear_input = self.last_axes[7]
+                angular_input = self.last_axes[6]
 
                 # Small deadzone
                 dead = 0.1
