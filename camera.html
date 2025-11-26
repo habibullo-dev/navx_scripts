@@ -3,13 +3,162 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Document</title>
+    <title>AI Navigation Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Ensure canvas perfectly overlaps the image */
+      .video-container {
+        position: relative;
+        display: inline-block;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+
+      #camera-stream {
+        display: block;
+        width: 640px; /* Base width */
+        height: auto;
+      }
+
+      #ai-layer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* Let clicks pass through to video if needed */
+      }
+    </style>
   </head>
-  <body>
-    <h1>Dashboard</h1>
-    <img
-      src="http://172.20.10.10:8080/?action=stream"
-      style="width: 480px; border-radius: 8px"
-    />
+  <body class="bg-slate-900 text-white p-10 font-sans">
+    <div class="max-w-4xl mx-auto">
+      <header class="mb-6 flex justify-between items-center">
+        <div>
+          <h1 class="text-3xl font-bold text-blue-400">NavBot Dashboard</h1>
+          <p class="text-slate-400">Live feed with YOLOv8 Object Detection</p>
+        </div>
+        <div
+          id="status"
+          class="px-3 py-1 rounded bg-red-600 text-xs font-bold uppercase tracking-wide"
+        >
+          AI Disconnected
+        </div>
+      </header>
+
+      <!-- The Main Viewport -->
+      <div class="video-container border-2 border-slate-700">
+        <!-- 1. The Raw Stream from Pi -->
+        <img
+          id="camera-stream"
+          src="http://172.20.10.10:8080/?action=stream"
+          alt="Waiting for stream..."
+        />
+
+        <!-- 2. The Transparent AI Drawing Layer -->
+        <canvas id="ai-layer"></canvas>
+      </div>
+
+      <!-- Live Logs -->
+      <div class="mt-6 grid grid-cols-2 gap-4">
+        <div class="bg-slate-800 p-4 rounded border border-slate-700">
+          <h3 class="font-bold text-slate-300 mb-2">Detected Objects</h3>
+          <ul
+            id="object-list"
+            class="text-sm space-y-1 text-green-400 font-mono h-32 overflow-y-auto"
+          >
+            <!-- Items added via JS -->
+          </ul>
+        </div>
+
+        <div class="bg-slate-800 p-4 rounded border border-slate-700">
+          <h3 class="font-bold text-slate-300 mb-2">System Status</h3>
+          <p class="text-sm text-slate-400">
+            Processing Node: <span class="text-white">Laptop (Localhost)</span>
+          </p>
+          <p class="text-sm text-slate-400">
+            Model: <span class="text-white">YOLOv8 Nano</span>
+          </p>
+          <p class="text-sm text-slate-400">
+            Latency: <span id="ping" class="text-white">--</span> ms
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("ai-layer");
+      const ctx = canvas.getContext("2d");
+      const img = document.getElementById("camera-stream");
+      const statusBadge = document.getElementById("status");
+      const objectList = document.getElementById("object-list");
+
+      // Connect to Python Server on Laptop
+      const ws = new WebSocket("ws://localhost:8765");
+
+      ws.onopen = () => {
+        statusBadge.innerText = "AI Connected";
+        statusBadge.className =
+          "px-3 py-1 rounded bg-green-500 text-xs font-bold uppercase tracking-wide";
+        console.log("Connected to AI Server");
+      };
+
+      ws.onclose = () => {
+        statusBadge.innerText = "AI Offline";
+        statusBadge.className =
+          "px-3 py-1 rounded bg-red-600 text-xs font-bold uppercase tracking-wide";
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        const objects = data.objects;
+
+        // 1. Resize canvas to match the actual displayed image size
+        // This ensures boxes stay aligned even if you resize the browser
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+
+        // 2. Clear previous drawings
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // 3. Clear List
+        objectList.innerHTML = "";
+
+        // 4. Draw new boxes
+        objects.forEach((obj) => {
+          const [nx1, ny1, nx2, ny2] = obj.bbox;
+
+          // Convert normalized (0-1) coords to pixels
+          const x = nx1 * canvas.width;
+          const y = ny1 * canvas.height;
+          const w = (nx2 - nx1) * canvas.width;
+          const h = (ny2 - ny1) * canvas.height;
+
+          // Draw Box
+          ctx.strokeStyle = "#00ff00";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x, y, w, h);
+
+          // Draw Label Background
+          ctx.fillStyle = "#00ff00";
+          ctx.fillRect(x, y - 20, ctx.measureText(obj.label).width + 10, 20);
+
+          // Draw Label Text
+          ctx.fillStyle = "#000000";
+          ctx.font = "bold 12px Arial";
+          ctx.fillText(
+            `${obj.label} ${Math.round(obj.conf * 100)}%`,
+            x + 5,
+            y - 5
+          );
+
+          // Add to log list
+          const li = document.createElement("li");
+          li.innerText = `> ${obj.label} detected`;
+          objectList.appendChild(li);
+        });
+      };
+    </script>
   </body>
 </html>
+  
