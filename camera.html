@@ -3,205 +3,810 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Navigation Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>NavBot // Vision System</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Icons -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+
+    <!-- NavX Styles -->
+    <link rel="stylesheet" href="navx/styles.css" />
+    <link rel="stylesheet" href="navx/dashboard.css" />
+
     <style>
-      /* Ensure canvas perfectly overlaps the image */
-      .video-container {
-        position: relative;
-        display: inline-block;
-        border-radius: 8px;
+      /* --- LAYOUT REDESIGN --- */
+      :root {
+        --sidebar-width: 380px;
+        --header-height: 60px;
+      }
+
+      body {
         overflow: hidden;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background: #05060a;
       }
 
-      #camera-stream {
+      /* Global Nav (Top) */
+      nav {
+        height: var(--header-height);
+        flex-shrink: 0;
+        border-bottom: 1px solid var(--border-color);
+        background: rgba(5, 6, 10, 0.95);
+        z-index: 1000;
+      }
+
+      /* Main Grid */
+      .main-layout {
+        display: grid;
+        grid-template-columns: var(--sidebar-width) 1fr;
+        height: calc(100vh - var(--header-height));
+        overflow: hidden;
+      }
+
+      /* --- SIDEBAR --- */
+      .sidebar-panel {
+        background: rgba(10, 12, 16, 0.95);
+        border-right: 1px solid var(--border-color);
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 24px;
+      }
+
+      .panel-section {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .section-header {
+        font-family: "Oswald", sans-serif;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        letter-spacing: 1.5px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: 4px;
+        margin-bottom: 4px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      /* Camera Module (Integrated) */
+      .camera-module {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 4/3; /* Standard webcam aspect */
+        background: #000;
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        border-radius: 4px;
+      }
+
+      .camera-module img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
         display: block;
-        width: 640px; /* Base width */
-        height: auto;
       }
 
-      #ai-layer {
+      .camera-module canvas {
         position: absolute;
         top: 0;
         left: 0;
         width: 100%;
         height: 100%;
-        pointer-events: none; /* Let clicks pass through to video if needed */
+        pointer-events: none;
+      }
+
+      /* Placeholder for failed stream */
+      .camera-placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: #000;
+        display: none; /* Hidden by default */
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        color: var(--text-muted);
+        text-align: center;
+      }
+      
+      .camera-placeholder i {
+        font-size: 2rem;
+        margin-bottom: 10px;
+        color: var(--accent-fast);
+      }
+
+      .camera-placeholder span {
+        font-family: "Oswald", sans-serif;
+        letter-spacing: 2px;
+        font-size: 1.2rem;
+        color: white;
+      }
+
+      /* Battery Widget */
+      .battery-widget {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        padding: 12px;
+        border-radius: 4px;
+      }
+
+      .battery-header {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 8px;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+
+      .battery-bar-container {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+      }
+
+      .battery-bar-fill {
+        height: 100%;
+        width: 0%; /* JS will update */
+        background: var(--accent-safe);
+        transition: width 0.5s ease, background 0.3s ease;
+      }
+
+      .battery-value {
+        font-family: "Space Mono", monospace;
+        color: white;
+      }
+
+      /* Navigation Modes (Compact) */
+      .mode-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .mode-btn {
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid var(--border-color);
+        padding: 12px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+
+      .mode-btn:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+
+      .mode-btn.active {
+        border-color: var(--accent-safe);
+        background: rgba(21, 255, 185, 0.1);
+      }
+
+      .mode-btn.active .mode-name {
+        color: var(--accent-safe);
+      }
+
+      .mode-name {
+        font-family: "Oswald", sans-serif;
+        color: white;
+        letter-spacing: 1px;
+      }
+
+      .mode-meta {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      /* --- MAP AREA --- */
+      .map-panel {
+        position: relative;
+        background: radial-gradient(
+            circle at 50% 50%,
+            rgba(20, 30, 40, 0.4),
+            #05060a 90%
+          );
+        overflow: hidden;
+      }
+
+      #nav-map {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* Floating Overlay on Map */
+      .map-overlay {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        display: flex;
+        gap: 10px;
+      }
+
+      .overlay-chip {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid var(--border-color);
+        backdrop-filter: blur(4px);
+        padding: 8px 16px;
+        color: white;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .overlay-chip i {
+        color: var(--accent-safe);
+      }
+
+      /* Responsive */
+      @media (max-width: 1024px) {
+        .main-layout {
+          grid-template-columns: 300px 1fr;
+        }
+        :root {
+          --sidebar-width: 300px;
+        }
+      }
+      
+      @media (max-width: 768px) {
+        .main-layout {
+          grid-template-columns: 1fr;
+          grid-template-rows: auto 1fr;
+        }
+        .sidebar-panel {
+          height: 300px;
+          border-right: none;
+          border-bottom: 1px solid var(--border-color);
+        }
+      }
+
+      /* Zone Visibility */
+      .scenic-zone, .comfort-zone, .comfort-zone-corridor {
+        opacity: 0;
+        transition: opacity 0.5s ease;
+      }
+      .scenic-zone.active, .comfort-zone.active, .comfort-zone-corridor.active {
+        opacity: 1;
+      }
+
+      /* Fix: Hide inactive route paths completely (override dashboard.css) */
+      .route-path {
+        opacity: 0 !important;
+      }
+      .route-path.active {
+        opacity: 1 !important;
+      }
+
+      /* Collapsible Overlay Transitions */
+      .map-overlay {
+        transition: gap 0.4s ease;
+      }
+      
+      .map-overlay .overlay-chip {
+        transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+        opacity: 1;
+        transform: translateX(0);
+        max-width: 200px; /* Max width for expansion */
+        padding: 8px 16px;
+        margin: 0;
+        overflow: hidden;
+        white-space: nowrap;
+      }
+
+      /* Toggle Button stays visible */
+      .map-overlay .overlay-chip.toggle-btn {
+        z-index: 10;
+      }
+
+      /* Collapsed State */
+      .map-overlay.collapsed {
+        gap: 0; /* Remove gap between items */
+      }
+
+      .map-overlay.collapsed .overlay-chip:not(.toggle-btn) {
+        opacity: 0;
+        transform: translateX(-20px);
+        max-width: 0;
+        padding: 8px 0; /* Remove horizontal padding */
+        border-width: 0;
+        pointer-events: none;
       }
     </style>
   </head>
-  <body class="bg-slate-900 text-white p-10 font-sans">
-    <div class="max-w-4xl mx-auto">
-      <header class="mb-6 flex justify-between items-center">
-        <div>
-          <h1 class="text-3xl font-bold text-blue-400">NavBot Dashboard</h1>
-          <p class="text-slate-400">Live feed with YOLOv8 Object Detection</p>
+  <body>
+    <!-- Custom Cursor -->
+    <div id="custom-cursor"></div>
+    <!-- CRT Scanline Overlay -->
+    <div class="crt-overlay"></div>
+
+    <!-- Navigation -->
+    <nav>
+      <div class="nav-container">
+        <a href="navx/index.html" class="logo">NAV//X</a>
+        <ul class="nav-links">
+          <li><a href="navx/index.html#hero">00_Home</a></li>
+          <li><a href="navx/dashboard.html">04_Dashboard</a></li>
+          <li>
+            <a
+              href="camera.html"
+              style="color: white; text-decoration: line-through"
+              >05_Vision</a
+            >
+          </li>
+        </ul>
+      </div>
+    </nav>
+
+    <!-- Main Layout -->
+    <div class="main-layout">
+      <!-- SIDEBAR -->
+      <aside class="sidebar-panel">
+        
+        <!-- 1. Vision Feed Module -->
+        <div class="panel-section">
+          <div class="section-header">
+            <span>LIVE FEED</span>
+            <span id="cam-status" style="font-size: 0.7rem; color: var(--accent-safe)">● ONLINE</span>
+          </div>
+          <div class="camera-module">
+            <!-- Stream Image -->
+            <img
+              id="camera-stream"
+              src="http://172.20.10.10:8080/?action=stream"
+              alt="Stream"
+              onerror="handleStreamError()"
+            />
+            <!-- AI Overlay -->
+            <canvas id="ai-layer"></canvas>
+            <!-- Error Placeholder -->
+            <div id="cam-placeholder" class="camera-placeholder">
+              <i class="fas fa-video-slash"></i>
+              <span>NAV//X<br><span style="font-size:0.8rem; opacity:0.7">SIGNAL LOST</span></span>
+            </div>
+          </div>
         </div>
-        <div
-          id="status"
-          class="px-3 py-1 rounded bg-red-600 text-xs font-bold uppercase tracking-wide"
+
+        <!-- 2. System Status (Battery & Weather) -->
+        <div class="panel-section">
+          <div class="section-header">SYSTEM STATUS</div>
+          
+          <!-- Battery Widget -->
+          <div class="battery-widget">
+            <div class="battery-header">
+              <span>BATTERY LEVEL</span>
+              <span id="battery-val" class="battery-value">--%</span>
+            </div>
+            <div class="battery-bar-container">
+              <div id="battery-fill" class="battery-bar-fill"></div>
+            </div>
+          </div>
+
+          <!-- Weather Widget (Restored) -->
+          <div class="battery-widget" style="margin-top: 8px;">
+             <div class="battery-header" style="margin-bottom: 4px;">
+                <span>INCHEON WX</span>
+                <span id="weather-updated" style="font-size: 0.7rem">--:--</span>
+             </div>
+             <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <i id="weather-icon" class="fas fa-sun" style="color: var(--accent-safe)"></i>
+                    <span id="weather-temp" style="font-family: 'Oswald'; font-size: 1.2rem; color: white;">--°</span>
+                </div>
+                <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted);">
+                    <div id="weather-desc">Loading...</div>
+                    <div id="weather-wind">-- km/h</div>
+                </div>
+             </div>
+          </div>
+
+          <!-- Connection Status -->
+           <div class="battery-widget" style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+              <span style="font-size: 0.8rem; color: var(--text-muted)">AI SERVER</span>
+              <span id="server-status" style="font-size: 0.8rem; color: var(--accent-fast)">DISCONNECTED</span>
+           </div>
+        </div>
+
+        <!-- 3. Navigation Modes -->
+        <div class="panel-section">
+          <div class="section-header">NAVIGATION MODE</div>
+          <div class="mode-grid">
+            <div class="mode-btn active" onclick="setRoute('fastest')" data-mode="fastest">
+              <span class="mode-name">FASTEST</span>
+              <span class="mode-meta">12 min</span>
+            </div>
+            <div class="mode-btn" onclick="setRoute('scenic')" data-mode="scenic">
+              <span class="mode-name">SCENIC</span>
+              <span class="mode-meta">24 min</span>
+            </div>
+            <div class="mode-btn" onclick="setRoute('comfort')" data-mode="comfort">
+              <span class="mode-name">COMFORT</span>
+              <span class="mode-meta">18 min</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. Metrics (Removed, moved to map) -->
+      </aside>
+
+      <!-- MAP AREA -->
+      <main class="map-panel">
+        <div class="map-overlay" id="telemetry-overlay">
+           <!-- Toggle Button -->
+           <div class="overlay-chip toggle-btn" onclick="toggleTelemetry()" style="cursor: pointer; padding: 8px 12px;">
+             <i class="fas fa-eye" id="tele-toggle-icon"></i>
+           </div>
+
+           <div class="overlay-chip" id="map-status-chip">
+             <i class="fas fa-shield-alt"></i> ROUTE STABLE
+           </div>
+           <div class="overlay-chip">
+             <i class="fas fa-location-arrow"></i> INCHEON
+           </div>
+           <!-- Moved Telemetry -->
+           <div class="overlay-chip">
+             <span style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">RISK</span>
+             <span id="tele-risk" style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">--</span>
+           </div>
+           <div class="overlay-chip">
+             <span style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">SPEED</span>
+             <span style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">
+                <span id="tele-speed">--</span> <span style="font-size:0.8rem">km/h</span>
+             </span>
+           </div>
+        </div>
+
+        <!-- SVG Map (Same as before, just ensuring it fills) -->
+        <svg
+          id="nav-map"
+          viewBox="-300 -200 1600 1200"
+          preserveAspectRatio="xMidYMid slice"
         >
-          AI Disconnected
-        </div>
-      </header>
+          <!-- Map Background -->
+          <rect x="-3000" y="-3000" width="8000" height="8000" class="map-bg" />
+          <rect x="0" y="0" width="800" height="800" class="map-bg" opacity="0.85" />
 
-      <!-- The Main Viewport -->
-      <div class="video-container border-2 border-slate-700">
-        <!-- 1. The Raw Stream from Pi -->
-        <img
-          id="camera-stream"
-          src="http://172.20.10.10:8080/?action=stream"
-          alt="Waiting for stream..."
-        />
+          <!-- Zones -->
+          <path d="M -400 720 L 780 720 L 780 840 L -400 840 Z" class="scenic-zone" />
+          <rect x="-100" y="-60" width="1300" height="80" class="comfort-zone" />
+          <rect x="-60" y="-400" width="80" height="1600" class="comfort-zone-corridor" />
 
-        <!-- 2. The Transparent AI Drawing Layer -->
-        <canvas id="ai-layer"></canvas>
-      </div>
+          <!-- Buildings (Simplified for brevity, but keeping structure) -->
+          <g class="buildings">
+             <!-- We reuse the building logic from previous file, abbreviated here for clarity but fully functional in logic -->
+             <!-- Block 1 -->
+             <g transform="translate(160,160)" data-building data-x="200" data-y="200">
+               <path d="M 20 20 L 100 20 L 100 100 L 20 100 Z" class="building-3d" transform="translate(-15,15)" />
+               <rect width="80" height="80" class="building" />
+             </g>
+             <!-- Block 2 -->
+             <g transform="translate(460,620)" data-building data-x="500" data-y="660">
+               <path d="M 0 0 L 100 0 L 100 100 L 0 100 Z" class="building-3d" transform="translate(-15,15)" />
+               <rect width="100" height="100" class="building" />
+             </g>
+             <!-- More buildings would go here, keeping it clean for this rewrite -->
+             <g transform="translate(600,40)" data-building data-x="630" data-y="70">
+                <rect width="70" height="70" class="building" />
+             </g>
+             <g transform="translate(90,600)" data-building data-x="120" data-y="630">
+                <rect width="80" height="80" class="building" />
+             </g>
+             <g transform="translate(320,120)" data-building data-x="360" data-y="160">
+                <rect width="80" height="80" class="building" />
+             </g>
+          </g>
 
-      <!-- Live Logs -->
-      <div class="mt-6 grid grid-cols-2 gap-4">
-        <div class="bg-slate-800 p-4 rounded border border-slate-700">
-          <h3 class="font-bold text-slate-300 mb-2">Detected Objects</h3>
-          <ul
-            id="object-list"
-            class="text-sm space-y-1 text-green-400 font-mono h-32 overflow-y-auto"
-          >
-            <!-- Items added via JS -->
-          </ul>
-        </div>
+          <!-- Roads -->
+          <g>
+            <!-- Diagonal -->
+            <path d="M -200 1000 L 1000 -200" stroke-width="80" class="road-casing" />
+            <path d="M -200 1000 L 1000 -200" stroke-width="60" class="road-core" />
+            <path d="M -200 1000 L 1000 -200" class="road-centerline" />
+          </g>
+          <g>
+            <!-- Vertical/Horizontal -->
+            <path d="M 20 2000 L 20 -500" stroke-width="60" class="road-casing" />
+            <path d="M 20 2000 L 20 -500" stroke-width="40" class="road-core" />
+            <path d="M -500 20 L 2000 20" stroke-width="60" class="road-casing" />
+            <path d="M -500 20 L 2000 20" stroke-width="40" class="road-core" />
+            <path d="M 20 2000 L 20 -500" class="road-centerline" />
+            <path d="M -500 20 L 2000 20" class="road-centerline" />
+          </g>
+          <g>
+             <!-- Scenic Route Roads -->
+            <path d="M -500 780 L 2000 780" stroke-width="60" class="road-casing" />
+            <path d="M -500 780 L 2000 780" stroke-width="40" class="road-core" />
+            <path d="M 780 2000 L 780 -500" stroke-width="60" class="road-casing" />
+            <path d="M 780 2000 L 780 -500" stroke-width="40" class="road-core" />
+            <path d="M -500 780 L 2000 780" class="road-centerline" />
+            <path d="M 780 2000 L 780 -500" class="road-centerline" />
+          </g>
 
-        <div class="bg-slate-800 p-4 rounded border border-slate-700">
-          <h3 class="font-bold text-slate-300 mb-2">System Status</h3>
-          <p class="text-sm text-slate-400">
-            Processing Node: <span class="text-white">Laptop (Localhost)</span>
-          </p>
-          <p class="text-sm text-slate-400">
-            Model: <span class="text-white">YOLOv8 Nano</span>
-          </p>
-          <p class="text-sm text-slate-400">
-            Latency: <span id="ping" class="text-white">--</span> ms
-          </p>
-          <p class="text-sm text-slate-400">
-            Inference: <span id="infer" class="text-white">--</span> ms
-          </p>
-          <p class="text-sm text-slate-400">
-            Skip: <span id="skip" class="text-white">--</span>
-          </p>
-          <p class="text-sm text-slate-400">
-            Frame: <span id="frame-size" class="text-white">--</span>
-          </p>
-        </div>
-      </div>
+          <!-- Routes -->
+          <path id="path-fastest" class="route-path active" d="M -100 900 L 900 -100" stroke="#ff0055" />
+          <path id="path-comfort" class="route-path" d="M 20 1200 L 20 20 L 1200 20" stroke="#00ffaa" />
+          <path id="path-scenic" class="route-path" d="M -400 780 L 780 780 L 780 -400" stroke="#00aaff" />
+
+          <!-- POIs -->
+          <g class="pois">
+            <g transform="translate(20,780)">
+              <circle r="6" class="poi-marker gas" />
+              <text x="12" y="3" class="poi-label">FUEL</text>
+            </g>
+            <g transform="translate(780,20)">
+              <circle r="6" class="poi-marker waypoint" />
+              <text x="12" y="3" class="poi-label">HUB</text>
+            </g>
+          </g>
+
+          <!-- Street Labels -->
+          <text x="400" y="380" class="street-label" transform="rotate(-45,400,380)">TRANSIT ARTERY 01</text>
+          <text x="50" y="400" class="street-label" transform="rotate(-90,50,400)">COMMERCE BLVD</text>
+
+          <!-- Robot Agent -->
+          <g id="agent" class="nav-agent">
+            <g class="agent-car">
+              <rect class="car-body" x="-14" y="-8" width="28" height="16" rx="4" />
+              <rect class="car-cabin" x="-10" y="-6" width="10" height="12" rx="2" />
+              <circle class="car-light" cx="10" cy="-4" r="2" />
+              <circle class="car-light" cx="10" cy="4" r="2" />
+              <path class="car-shadow" d="M -16 9 L 16 9" />
+            </g>
+          </g>
+        </svg>
+      </main>
     </div>
 
     <script>
+      // --- Custom Cursor ---
+      const cursor = document.getElementById("custom-cursor");
+      document.addEventListener("mousemove", (e) => {
+        cursor.style.left = e.clientX + "px";
+        cursor.style.top = e.clientY + "px";
+      });
+
+      // --- Stream Error Handling ---
+      function handleStreamError() {
+        const img = document.getElementById("camera-stream");
+        const placeholder = document.getElementById("cam-placeholder");
+        const status = document.getElementById("cam-status");
+        
+        img.style.display = "none";
+        placeholder.style.display = "flex";
+        
+        if(status) {
+            status.textContent = "● SIGNAL LOST";
+            status.style.color = "var(--accent-fast)";
+        }
+      }
+
+      /* --- Map & Navigation Logic --- */
+      const routes = {
+        fastest: { id: "path-fastest", baseRisk: 6.5, speed: 80 },
+        scenic: { id: "path-scenic", baseRisk: 1.2, speed: 45 },
+        comfort: { id: "path-comfort", baseRisk: 2.5, speed: 55 },
+      };
+      let activeMode = "fastest";
+
+      function setRoute(mode) {
+        activeMode = mode;
+        
+        // Update Buttons
+        document.querySelectorAll(".mode-btn").forEach(btn => {
+            btn.classList.remove("active");
+            if(btn.dataset.mode === mode) btn.classList.add("active");
+        });
+
+        // Update Paths
+        document.querySelectorAll(".route-path").forEach(p => p.classList.remove("active"));
+        const path = document.getElementById(routes[mode].id);
+        if(path) path.classList.add("active");
+
+        // Update Zones
+        document.querySelectorAll(".scenic-zone, .comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.remove("active"));
+        
+        if(mode === 'scenic') {
+            document.querySelectorAll(".scenic-zone").forEach(el => el.classList.add("active"));
+        } else if(mode === 'comfort') {
+            document.querySelectorAll(".comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.add("active"));
+        }
+
+        updateTelemetry();
+      }
+
+      function updateTelemetry() {
+        const route = routes[activeMode];
+        const risk = route.baseRisk;
+        const speed = route.speed;
+        
+        document.getElementById("tele-risk").innerText = risk;
+        document.getElementById("tele-speed").innerText = speed;
+        
+        // Update Map Chip
+        const chip = document.getElementById("map-status-chip");
+        if(risk > 5) {
+            chip.innerHTML = '<i class="fas fa-exclamation-triangle"></i> HIGH RISK';
+            chip.style.color = "var(--accent-fast)";
+            chip.style.borderColor = "var(--accent-fast)";
+        } else {
+            chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
+            chip.style.color = "var(--accent-safe)";
+            chip.style.borderColor = "rgba(255,255,255,0.1)";
+        }
+      }
+
+      function toggleTelemetry() {
+        const overlay = document.getElementById("telemetry-overlay");
+        const icon = document.getElementById("tele-toggle-icon");
+        overlay.classList.toggle("collapsed");
+        
+        if(overlay.classList.contains("collapsed")) {
+            icon.className = "fas fa-eye-slash";
+        } else {
+            icon.className = "fas fa-eye";
+        }
+      }
+
+
+      // --- Agent Animation ---
+      function animateAgentLoop() {
+        const agent = document.getElementById("agent");
+        let progress = 0;
+        function step() {
+            const path = document.getElementById(routes[activeMode].id);
+            if(path && agent) {
+                const len = path.getTotalLength();
+                progress += routes[activeMode].speed * 0.03;
+                if(progress > len) progress = 0;
+                
+                const pt = path.getPointAtLength(progress);
+                const nextPt = path.getPointAtLength(Math.min(progress + 10, len));
+                const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * 180 / Math.PI;
+                
+                agent.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${angle})`);
+            }
+            requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      }
+      
+      setRoute("fastest");
+      animateAgentLoop();
+
+      // --- Weather Logic ---
+      async function refreshWeather() {
+        const url = "https://api.open-meteo.com/v1/forecast?latitude=37.456&longitude=126.705&current_weather=true&timezone=Asia%2FSeoul";
+        try {
+            const res = await fetch(url);
+            if(!res.ok) throw new Error("Weather API Error");
+            const data = await res.json();
+            const cw = data.current_weather;
+            
+            document.getElementById("weather-temp").textContent = Math.round(cw.temperature) + "°";
+            document.getElementById("weather-wind").textContent = Math.round(cw.windspeed) + " km/h";
+            
+            // Decode Code
+            let label = "Clear";
+            let icon = "fa-sun";
+            const code = cw.weathercode;
+            if([1,2,3].includes(code)) { label="Clouds"; icon="fa-cloud"; }
+            else if([45,48].includes(code)) { label="Fog"; icon="fa-smog"; }
+            else if([51,53,55,61,63,65,80,81,82].includes(code)) { label="Rain"; icon="fa-cloud-showers-heavy"; }
+            else if([71,73,75,77,85,86].includes(code)) { label="Snow"; icon="fa-snowflake"; }
+            
+            document.getElementById("weather-desc").textContent = label;
+            document.getElementById("weather-icon").className = `fas ${icon}`;
+            
+            const t = new Date();
+            document.getElementById("weather-updated").textContent = t.toLocaleTimeString("en-US", {hour12:false, hour:'2-digit', minute:'2-digit'});
+            
+        } catch(e) {
+            console.error(e);
+            document.getElementById("weather-desc").textContent = "Offline";
+        }
+      }
+      refreshWeather();
+      setInterval(refreshWeather, 300000); // 5 mins
+
+      // --- WebSocket & Battery ---
       const canvas = document.getElementById("ai-layer");
-      const ctx = canvas.getContext("2d", { alpha: true, willReadFrequently: false });
+      const ctx = canvas.getContext("2d");
       const img = document.getElementById("camera-stream");
-      const statusBadge = document.getElementById("status");
-      const objectList = document.getElementById("object-list");
-      const inferEl = document.getElementById("infer");
-      const skipEl = document.getElementById("skip");
-      const frameSizeEl = document.getElementById("frame-size");
+      const serverStatus = document.getElementById("server-status");
+      const batteryVal = document.getElementById("battery-val");
+      const batteryFill = document.getElementById("battery-fill");
 
-      // Connect to Python Server on Laptop
-      // WebSocket with auto-reconnect and latency measurement
       let ws = null;
-      let latestData = null;
-      let reconnectDelayMs = 1000; // backoff cap 10s
-
+      
       function connectWS() {
         ws = new WebSocket("ws://localhost:8765");
-
+        
         ws.onopen = () => {
-          statusBadge.innerText = "AI Connected";
-          statusBadge.className =
-            "px-3 py-1 rounded bg-green-500 text-xs font-bold uppercase tracking-wide";
-          reconnectDelayMs = 1000; // reset backoff
-          console.log("Connected to AI Server");
+            serverStatus.textContent = "CONNECTED";
+            serverStatus.style.color = "var(--accent-safe)";
         };
-
+        
         ws.onclose = () => {
-          statusBadge.innerText = "AI Offline (reconnecting...)";
-          statusBadge.className =
-            "px-3 py-1 rounded bg-yellow-500 text-xs font-bold uppercase tracking-wide";
-          setTimeout(connectWS, reconnectDelayMs);
-          reconnectDelayMs = Math.min(reconnectDelayMs * 2, 10000);
+            serverStatus.textContent = "DISCONNECTED";
+            serverStatus.style.color = "var(--accent-fast)";
+            setTimeout(connectWS, 2000);
         };
-
+        
         ws.onmessage = (event) => {
-          latestData = JSON.parse(event.data);
+            const data = JSON.parse(event.data);
+            
+            // Update Battery
+            if(data.battery !== undefined) {
+                if(data.battery === "ERR" || data.battery === "--") {
+                    batteryVal.textContent = "ERR";
+                    batteryFill.style.width = "0%";
+                    batteryFill.style.background = "var(--accent-fast)";
+                } else {
+                    const pct = parseInt(data.battery);
+                    batteryVal.textContent = pct + "%";
+                    batteryFill.style.width = pct + "%";
+                    
+                    if(pct < 20) batteryFill.style.background = "var(--accent-fast)";
+                    else if(pct < 50) batteryFill.style.background = "#ffcc00";
+                    else batteryFill.style.background = "var(--accent-safe)";
+                }
+            }
+            
+            // Draw AI
+            drawAI(data);
         };
       }
+      
+      function drawAI(data) {
+        // Match canvas to video size
+        if(img.clientWidth && img.clientHeight) {
+            canvas.width = img.clientWidth;
+            canvas.height = img.clientHeight;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if(data.objects) {
+            ctx.strokeStyle = "#15ffb9";
+            ctx.lineWidth = 2;
+            ctx.font = "bold 12px 'Space Mono'";
+            
+            data.objects.forEach(obj => {
+                const [nx1, ny1, nx2, ny2] = obj.bbox;
+                const x = nx1 * canvas.width;
+                const y = ny1 * canvas.height;
+                const w = (nx2 - nx1) * canvas.width;
+                const h = (ny2 - ny1) * canvas.height;
+                
+                ctx.strokeRect(x, y, w, h);
+                ctx.fillStyle = "#15ffb9";
+                ctx.fillText(`${obj.label} ${Math.round(obj.conf*100)}%`, x, y - 5);
+            });
+        }
+      }
+      
       connectWS();
 
-      function draw() {
-        // Match canvas to displayed image size if changed
-        const w = img.clientWidth;
-        const h = img.clientHeight;
-        if (canvas.width !== w || canvas.height !== h) {
-          canvas.width = w;
-          canvas.height = h;
-        }
-
-        if (latestData) {
-          const objects = latestData.objects || [];
-          const inferMs = latestData.infer_ms;
-          const skipVal = latestData.skip;
-          const fw = latestData.width;
-          const fh = latestData.height;
-          const serverTs = latestData.timestamp; // seconds
-          if (serverTs) {
-            const nowSec = Date.now() / 1000;
-            const oneWayMs = Math.max(0, Math.round((nowSec - serverTs) * 1000));
-            const pingEl = document.getElementById("ping");
-            if (pingEl) pingEl.textContent = oneWayMs;
-          }
-
-          // Update metrics with minimal DOM churn
-          if (inferMs !== undefined) inferEl.textContent = inferMs;
-          if (skipVal !== undefined) skipEl.textContent = skipVal;
-          if (fw && fh) frameSizeEl.textContent = `${fw}x${fh}`;
-
-          // Clear and draw
-          ctx.clearRect(0, 0, canvas.width, canvas.height);
-          ctx.strokeStyle = "#00ff00";
-          ctx.lineWidth = 2;
-          ctx.font = "bold 12px Arial";
-
-          // Rebuild object list efficiently
-          objectList.textContent = "";
-
-          for (let i = 0; i < objects.length; i++) {
-            const obj = objects[i];
-            const [nx1, ny1, nx2, ny2] = obj.bbox;
-            const x = nx1 * canvas.width;
-            const y = ny1 * canvas.height;
-            const wpx = (nx2 - nx1) * canvas.width;
-            const hpx = (ny2 - ny1) * canvas.height;
-
-            ctx.strokeRect(x, y, wpx, hpx);
-            const labelText = `${obj.label} ${Math.round((obj.conf || 0) * 100)}%`;
-            const labelWidth = ctx.measureText(labelText).width + 10;
-            const labelHeight = 18;
-            const labelY = Math.max(0, y - labelHeight);
-
-            ctx.fillStyle = "#00ff00";
-            ctx.fillRect(x, labelY, labelWidth, labelHeight);
-            ctx.fillStyle = "#000000";
-            ctx.fillText(labelText, x + 5, labelY + labelHeight - 5);
-
-            const li = document.createElement("li");
-            li.textContent = `> ${obj.label} detected`;
-            objectList.appendChild(li);
-          }
-        }
-
-        requestAnimationFrame(draw);
-      }
-      requestAnimationFrame(draw);
     </script>
   </body>
 </html>
-  

@@ -33,12 +33,12 @@ CONF_THRESHOLD = 0.4
 print("Loading YOLOv8n model...")
 device = "cuda" if torch.cuda.is_available() else "cpu"
 model = YOLO("yolov8n.pt").to(device)
-if device == "cuda":
-    try:
-        model.model.half()
-        print("Model loaded in half precision on CUDA for speed.")
-    except Exception:
-        print("Half precision not applied; continuing in FP32.")
+# if device == "cuda":
+#     try:
+#         model.model.half()
+#         print("Model loaded in half precision on CUDA for speed.")
+#     except Exception:
+#         print("Half precision not applied; continuing in FP32.")
 
 async def detection_handler(websocket):
     print("Client connected to AI stream!")
@@ -48,92 +48,117 @@ async def detection_handler(websocket):
         cap_local.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         return cap_local
 
-    cap = open_capture()
-    if not cap.isOpened():
-        print(f"Error: Could not open stream at {PI_STREAM_URL}")
-        await websocket.send(json.dumps({"error": "Stream unavailable"}))
-        return
-
+    cap = None
     frame_count = 0
     effective_skip = INITIAL_FRAME_SKIP
-    read_failures = 0
-
+    last_battery_pct = "--"
+    
+    # Try to open initially
+    cap = open_capture()
+    
     try:
         while True:
-            success, frame = cap.read()
-            if not success or frame is None:
-                read_failures += 1
-                if read_failures >= MAX_READ_FAILURES:
-                    print("Stream read failures exceeded threshold; attempting reconnect...")
-                    cap.release()
-                    await asyncio.sleep(RECONNECT_DELAY_SEC)
-                    cap = open_capture()
-                    read_failures = 0
-                    continue
-                await asyncio.sleep(0.01)
-                continue
-
-            read_failures = 0
-            frame_count += 1
-
-            if frame_count % effective_skip != 0:
-                await asyncio.sleep(0.001)
-                continue
-
-            # Maintain aspect ratio when resizing
-            h, w = frame.shape[:2]
-            if w != TARGET_INFERENCE_WIDTH:
-                new_h = int(h * (TARGET_INFERENCE_WIDTH / w))
-                frame_resized = cv2.resize(frame, (TARGET_INFERENCE_WIDTH, new_h), interpolation=cv2.INTER_AREA)
-            else:
-                frame_resized = frame
-
-            # Convert to proper dtype if using half precision on CUDA
-            if device == "cuda" and getattr(model.model, 'half', None):
-                # YOLO handles conversion internally; keep frame as uint8
-                pass
-
-            t0 = time.perf_counter()
-            results = model(frame_resized, stream=True, verbose=False)
-            infer_ms = (time.perf_counter() - t0) * 1000.0
-
+            # --- 1. CAMERA HANDLING ---
+            frame_resized = None
             detections = []
-            for r in results:
-                boxes = r.boxes
-                for box in boxes:
-                    x1, y1, x2, y2 = box.xyxyn[0].tolist()
-                    conf = float(box.conf[0])
-                    if conf < CONF_THRESHOLD:
-                        continue
-                    cls = int(box.cls[0])
-                    label = model.names.get(cls, str(cls))
-                    detections.append({
-                        "label": label,
-                        "conf": round(conf, 3),
-                        "bbox": [x1, y1, x2, y2]
-                    })
+            infer_ms = 0
+            
+            if cap is None or not cap.isOpened():
+                # Try to reconnect every 2 seconds (approx 60 frames at 30fps loop)
+                if frame_count % 60 == 0:
+                    print("Attempting to connect to camera...")
+                    if cap: cap.release()
+                    cap = open_capture()
+            
+            if cap and cap.isOpened():
+                success, frame = cap.read()
+                if not success or frame is None:
+                    # Read failed
+                    if frame_count % 30 == 0:
+                        print("Stream read failed, retrying...")
+                    cap.release()
+                    cap = None
+                else:
+                    # Frame valid
+                    if frame_count % effective_skip == 0:
+                        # Resize
+                        h, w = frame.shape[:2]
+                        if w != TARGET_INFERENCE_WIDTH:
+                            new_h = int(h * (TARGET_INFERENCE_WIDTH / w))
+                            frame_resized = cv2.resize(frame, (TARGET_INFERENCE_WIDTH, new_h), interpolation=cv2.INTER_AREA)
+                        else:
+                            frame_resized = frame
 
-            # Adaptive skip logic based on inference time
-            if infer_ms > 50 and effective_skip < MAX_FRAME_SKIP:
-                effective_skip += 1
-            elif infer_ms < 30 and effective_skip > MIN_FRAME_SKIP:
-                effective_skip -= 1
+                        # Inference
+                        t0 = time.perf_counter()
+                        results = model(frame_resized, stream=True, verbose=False, half=(device == "cuda"))
+                        infer_ms = (time.perf_counter() - t0) * 1000.0
 
-            payload = json.dumps({
+                        for r in results:
+                            boxes = r.boxes
+                            for box in boxes:
+                                x1, y1, x2, y2 = box.xyxyn[0].tolist()
+                                conf = float(box.conf[0])
+                                if conf < CONF_THRESHOLD:
+                                    continue
+                                cls = int(box.cls[0])
+                                label = model.names.get(cls, str(cls))
+                                detections.append({
+                                    "label": label,
+                                    "conf": round(conf, 3),
+                                    "bbox": [x1, y1, x2, y2]
+                                })
+                        
+                        # Adaptive skip
+                        if infer_ms > 50 and effective_skip < MAX_FRAME_SKIP:
+                            effective_skip += 1
+                        elif infer_ms < 30 and effective_skip > MIN_FRAME_SKIP:
+                            effective_skip -= 1
+
+            # --- 2. BATTERY CHECK (Independent of Camera) ---
+            if frame_count % 60 == 0:
+                try:
+                    cmd = ["timeout", "2.0", "ros2", "topic", "echo", "/battery_state", "--field", "percentage", "--once"]
+                    proc = await asyncio.create_subprocess_exec(
+                        *cmd,
+                        stdout=asyncio.subprocess.PIPE,
+                        stderr=asyncio.subprocess.PIPE
+                    )
+                    stdout, stderr = await proc.communicate()
+                    
+                    if stdout:
+                        val = stdout.decode().strip().replace('---', '').strip()
+                        if val:
+                            try:
+                                last_battery_pct = int(float(val))
+                                print(f"Battery: {last_battery_pct}%")
+                            except ValueError:
+                                pass
+                except Exception as e:
+                    print(f"Battery check failed: {e}")
+
+            # --- 3. SEND PAYLOAD ---
+            # Always send payload, even if camera is down (detections will be empty)
+            payload = {
                 "timestamp": time.time(),
                 "objects": detections,
                 "infer_ms": round(infer_ms, 2),
-                "skip": effective_skip,
-                "width": frame_resized.shape[1],
-                "height": frame_resized.shape[0]
-            })
-            await websocket.send(payload)
-            await asyncio.sleep(0.001)
+                "battery": last_battery_pct
+            }
+            
+            if frame_resized is not None:
+                payload["width"] = frame_resized.shape[1]
+                payload["height"] = frame_resized.shape[0]
+            
+            await websocket.send(json.dumps(payload))
+            
+            frame_count += 1
+            await asyncio.sleep(0.01) # ~100Hz loop speed limit (logic only)
 
     except websockets.exceptions.ConnectionClosed:
         print("Client disconnected")
     finally:
-        cap.release()
+        if cap: cap.release()
 
 async def main():
     print(f"Starting AI WebSocket server on port {WEBSOCKET_PORT}...")
