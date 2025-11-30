@@ -100,6 +100,181 @@
       display: block;
     }
 
+    /* --- Modal Styles --- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+      z-index: 1000;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal-content {
+      background: #0a0a0a;
+      border: 1px solid var(--primary-color);
+      width: 600px;
+      padding: 2rem;
+      position: relative;
+      box-shadow: 0 0 30px rgba(0, 255, 136, 0.1);
+    }
+
+    .modal-content::before {
+      content: "";
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, var(--primary-color), transparent, var(--primary-color));
+      z-index: -1;
+      opacity: 0.3;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      border-bottom: 1px solid #333;
+      padding-bottom: 1rem;
+    }
+
+    .modal-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.5rem;
+      color: var(--primary-color);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .option-card {
+      background: #111;
+      border: 1px solid #333;
+      padding: 1.5rem 1rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: center;
+    }
+
+    .option-card:hover {
+      border-color: var(--primary-color);
+      background: #1a1a1a;
+    }
+
+    .option-card.selected {
+      border-color: var(--primary-color);
+      background: rgba(0, 255, 136, 0.1);
+      box-shadow: 0 0 15px rgba(0, 255, 136, 0.2);
+    }
+
+    .option-icon {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: #888;
+    }
+
+    .option-card.selected .option-icon {
+      color: var(--primary-color);
+    }
+
+    .option-title {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.9rem;
+      color: #fff;
+      margin-bottom: 0.5rem;
+    }
+
+    .option-desc {
+      font-size: 0.7rem;
+      color: #aaa;
+      /* Lighter gray for better readability */
+      line-height: 1.4;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .calc-btn {
+      background: #00ff88;
+      /* Explicit Neon Green */
+      color: #000;
+      border: none;
+      padding: 0.8rem 2rem;
+      font-family: 'Space Mono', monospace;
+      font-weight: bold;
+      cursor: pointer;
+      text-transform: uppercase;
+      clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+      transition: all 0.2s ease;
+      box-shadow: 0 0 10px rgba(0, 255, 136, 0.3);
+    }
+
+    .calc-btn:hover {
+      background: #fff;
+      box-shadow: 0 0 20px var(--primary-color);
+    }
+
+    .calc-btn:disabled {
+      background: #333;
+      color: #fff;
+      /* White text */
+      opacity: 0.5;
+      /* Dimmed via opacity instead of dark color */
+      cursor: not-allowed;
+      box-shadow: none;
+      border: 1px solid #555;
+    }
+
+    /* Processing Overlay */
+    .processing-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 10, 10, 0.95);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .processing-overlay.active {
+      display: flex;
+    }
+
+    .processing-text {
+      font-family: 'Space Mono', monospace;
+      color: var(--primary-color);
+      margin-top: 1rem;
+      font-size: 0.9rem;
+    }
+
     .camera-module canvas {
       position: absolute;
       top: 0;
@@ -678,6 +853,59 @@
     </main>
   </div>
 
+  <!-- Route Preference Modal -->
+  <div id="route-modal" class="modal-overlay">
+    <div class="modal-content">
+      <!-- Processing Overlay -->
+      <div id="processing-view" class="processing-overlay">
+        <div class="loader"></div> <!-- Reusing existing loader style if available, or simple text -->
+        <div style="color: var(--primary-color); font-size: 2rem;">
+          <i class="fas fa-cog fa-spin"></i>
+        </div>
+        <div id="processing-text" class="processing-text">ANALYZING TOPOLOGY...</div>
+      </div>
+
+      <div class="modal-header">
+        <div>
+          <div id="modal-status-msg"
+            style="font-family: 'Space Mono'; font-size: 0.9rem; color: var(--accent-safe); margin-bottom: 0.5rem; display: none;">
+            // SYSTEM_MSG: SAFELY ARRIVED
+          </div>
+          <div class="modal-title">Route Optimization Strategy</div>
+        </div>
+        <div style="font-family: 'Space Mono'; font-size: 0.8rem; color: #666;">ID: #REQ-9921</div>
+      </div>
+
+      <div class="modal-grid">
+        <!-- Option 1: Fastest -->
+        <div class="option-card" onclick="selectOption('fastest', this)">
+          <div class="option-icon"><i class="fas fa-bolt"></i></div>
+          <div class="option-title">FASTEST</div>
+          <div class="option-desc">Optimized for speed. Direct path routing with minimal deviation.</div>
+        </div>
+
+        <!-- Option 2: Scenic -->
+        <div class="option-card" onclick="selectOption('scenic', this)">
+          <div class="option-icon"><i class="fas fa-image"></i></div>
+          <div class="option-title">SCENIC</div>
+          <div class="option-desc">Relaxed pace. Prioritizes visual experience and environmental scanning.</div>
+        </div>
+
+        <!-- Option 3: Comfort -->
+        <div class="option-card" onclick="selectOption('comfort', this)">
+          <div class="option-icon"><i class="fas fa-couch"></i></div>
+          <div class="option-title">COMFORT</div>
+          <div class="option-desc">Smoothest ride. Minimizes acceleration forces for delicate cargo.</div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <div style="font-family: 'Space Mono'; font-size: 0.7rem; color: #444;">AWAITING INPUT...</div>
+        <button id="calc-btn" class="calc-btn" onclick="calculateRoute()" disabled>CALCULATE ROUTE</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // --- Custom Cursor ---
     const cursor = document.getElementById("custom-cursor");
@@ -1005,6 +1233,75 @@
       };
     }
 
+    // --- Modal Logic ---
+    let selectedMode = null;
+    let isModalOpen = false;
+
+    function showRouteModal(message = null) {
+      if (isModalOpen) return;
+      isModalOpen = true;
+      document.getElementById("route-modal").classList.add("active");
+
+      // Update Message
+      const msgEl = document.getElementById("modal-status-msg");
+      if (message) {
+        msgEl.innerText = "// " + message;
+        msgEl.style.display = "block";
+      } else {
+        msgEl.style.display = "none";
+      }
+
+      // Reset state
+      selectedMode = null;
+      document.querySelectorAll(".option-card").forEach(c => c.classList.remove("selected"));
+      document.getElementById("calc-btn").disabled = true;
+      document.getElementById("processing-view").classList.remove("active");
+    }
+
+    function hideRouteModal() {
+      isModalOpen = false;
+      document.getElementById("route-modal").classList.remove("active");
+    }
+
+    function selectOption(mode, card) {
+      selectedMode = mode;
+
+      // Update UI
+      document.querySelectorAll(".option-card").forEach(c => c.classList.remove("selected"));
+      card.classList.add("selected");
+
+      document.getElementById("calc-btn").disabled = false;
+    }
+
+    function calculateRoute() {
+      if (!selectedMode) return;
+
+      // Show processing
+      const overlay = document.getElementById("processing-view");
+      const text = document.getElementById("processing-text");
+      overlay.classList.add("active");
+
+      // Simulation steps
+      text.innerText = "ANALYZING TOPOLOGY...";
+
+      setTimeout(() => {
+        text.innerText = "OPTIMIZING COST FUNCTION...";
+      }, 800);
+
+      setTimeout(() => {
+        text.innerText = "GENERATING TRAJECTORY...";
+      }, 1600);
+
+      setTimeout(() => {
+        // Apply Mode
+        setRoute(selectedMode);
+        hideRouteModal();
+      }, 2400);
+    }
+
+    // Trigger on Load
+    setTimeout(() => showRouteModal("SYSTEM INITIALIZED"), 1000);
+
     function updateAgentPosition(status) {
       const agent = document.getElementById("agent");
 
@@ -1042,6 +1339,26 @@
         if (status.home_reached) progress = 0;
         if (status.dest_reached) progress = 1;
 
+        // Trigger Modal on Arrival (Debounced)
+        if ((status.home_reached || status.dest_reached) && !isModalOpen) {
+          // Only trigger if we haven't just triggered it
+          // Simple check: if progress is 0 or 1 and we are "stable"
+          // Let's use a flag or just a timeout to prevent spam
+          // For now, let's just trigger it once per arrival event?
+          // Better: Check if we are "arrived" and the modal isn't open.
+          // But we don't want it to pop up immediately if we just closed it.
+          // Let's add a small delay check or just let the user close it.
+          // Actually, the user wants it to ask "whenever we are starting or once we reach".
+          // So if we reach, show it.
+
+          // To avoid spamming while sitting at home:
+          // We need a state "hasShownForCurrentArrival".
+          // Let's keep it simple: if we are reached, show it. 
+          // But if user closes it, don't show again until we leave and come back?
+          // That requires more state.
+          // Let's just show it once after a delay.
+        }
+
         // Interpolate using SVG Path
         const len = pathEl.getTotalLength();
         const pt = pathEl.getPointAtLength(progress * len);
@@ -1050,8 +1367,6 @@
         svgY = pt.y;
 
         // Calculate Rotation (Tangent)
-        // We look slightly ahead to get the angle
-        // But if we are at the end, look slightly back
         let nextPt;
         if (progress < 0.99) {
           nextPt = pathEl.getPointAtLength(Math.min((progress + 0.01) * len, len));
@@ -1060,12 +1375,6 @@
           const prevPt = pathEl.getPointAtLength(Math.max((progress - 0.01) * len, 0));
           angleDeg = Math.atan2(pt.y - prevPt.y, pt.x - prevPt.x) * (180 / Math.PI);
         }
-
-        // Optional: Blend with real yaw? 
-        // The user wants "stable" movement synced with turtlebot.
-        // Following the path tangent makes it look like it's driving ON the road.
-        // Real yaw might be spinning in place which looks weird if the car is moving linearly on a track.
-        // Let's stick to path tangent for the "Illusion" of driving the route.
 
       } else if (status.current_pose) {
         // Fallback
@@ -1088,15 +1397,34 @@
         chip.innerHTML = '<i class="fas fa-check-circle"></i> HOME REACHED';
         chip.style.color = "#ffcc00";
         chip.style.borderColor = "#ffcc00";
+
+        // Trigger Modal if not recently shown
+        if (!window.hasShownHomeModal) {
+          setTimeout(() => showRouteModal("SAFELY ARRIVED AT HOME"), 1000);
+          window.hasShownHomeModal = true;
+          window.hasShownDestModal = false; // Reset other
+        }
+
       } else if (status.dest_reached) {
         chip.innerHTML = '<i class="fas fa-flag-checkered"></i> TARGET REACHED';
         chip.style.color = "#00aaff";
         chip.style.borderColor = "#00aaff";
+
+        if (!window.hasShownDestModal) {
+          setTimeout(() => showRouteModal("SAFELY ARRIVED AT DESTINATION"), 1000);
+          window.hasShownDestModal = true;
+          window.hasShownHomeModal = false; // Reset other
+        }
+
       } else {
         if (!chip.innerHTML.includes("HIGH RISK")) {
           chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
           chip.style.color = "var(--accent-safe)";
           chip.style.borderColor = "rgba(255,255,255,0.1)";
+
+          // Reset flags when moving
+          window.hasShownHomeModal = false;
+          window.hasShownDestModal = false;
         }
       }
     }
