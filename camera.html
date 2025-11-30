@@ -1,1009 +1,1023 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NavBot // Vision System</title>
 
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
-      rel="stylesheet"
-    />
-    <!-- Icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    />
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NavBot // Vision System</title>
 
-    <!-- NavX Styles -->
-    <link rel="stylesheet" href="navx/styles.css" />
-    <link rel="stylesheet" href="navx/dashboard.css" />
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet" />
+  <!-- Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
-    <style>
-      /* --- LAYOUT REDESIGN --- */
-      :root {
-        --sidebar-width: 550px;
-        --header-height: 60px;
-      }
+  <!-- NavX Styles -->
+  <link rel="stylesheet" href="navx/styles.css" />
+  <link rel="stylesheet" href="navx/dashboard.css" />
 
-      body {
-        overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        height: 100vh;
-        background: #05060a;
-      }
+  <style>
+    /* --- LAYOUT REDESIGN --- */
+    :root {
+      --sidebar-width: 550px;
+      --header-height: 60px;
+    }
 
-      /* Global Nav (Top) */
-      nav {
-        height: var(--header-height);
-        flex-shrink: 0;
-        border-bottom: 1px solid var(--border-color);
-        background: rgba(5, 6, 10, 0.95);
-        z-index: 1000;
-      }
+    body {
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      background: #05060a;
+    }
 
-      /* Main Grid */
+    /* Global Nav (Top) */
+    nav {
+      height: var(--header-height);
+      flex-shrink: 0;
+      border-bottom: 1px solid var(--border-color);
+      background: rgba(5, 6, 10, 0.95);
+      z-index: 1000;
+    }
+
+    /* Main Grid */
+    .main-layout {
+      display: grid;
+      grid-template-columns: var(--sidebar-width) 1fr;
+      height: calc(100vh - var(--header-height));
+      overflow: hidden;
+    }
+
+    /* --- SIDEBAR --- */
+    .sidebar-panel {
+      background: rgba(10, 12, 16, 0.95);
+      border-right: 1px solid var(--border-color);
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section-header {
+      font-family: "Oswald", sans-serif;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      letter-spacing: 1.5px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 4px;
+      margin-bottom: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Camera Module (Integrated) */
+    .camera-module {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      /* Standard webcam aspect */
+      background: #000;
+      border: 1px solid var(--border-color);
+      overflow: hidden;
+      border-radius: 4px;
+    }
+
+    .camera-module img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .camera-module canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    /* Placeholder for failed stream */
+    .camera-placeholder {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #000;
+      display: none;
+      /* Hidden by default */
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: var(--text-muted);
+      text-align: center;
+    }
+
+    .camera-placeholder i {
+      font-size: 2rem;
+      margin-bottom: 10px;
+      color: var(--accent-fast);
+    }
+
+    .camera-placeholder span {
+      font-family: "Oswald", sans-serif;
+      letter-spacing: 2px;
+      font-size: 1.2rem;
+      color: white;
+    }
+
+    /* Battery Widget */
+    .battery-widget {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      border-radius: 4px;
+    }
+
+    .battery-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .battery-bar-container {
+      height: 8px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .battery-bar-fill {
+      height: 100%;
+      width: 0%;
+      /* JS will update */
+      background: var(--accent-safe);
+      transition: width 0.5s ease, background 0.3s ease;
+    }
+
+    .battery-value {
+      font-family: "Space Mono", monospace;
+      color: white;
+    }
+
+    /* Navigation Modes (Compact) */
+    .mode-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+
+    .mode-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border-color);
+      padding: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .mode-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .mode-btn.active {
+      border-color: var(--accent-safe);
+      background: rgba(21, 255, 185, 0.1);
+    }
+
+    .mode-btn.active .mode-name {
+      color: var(--accent-safe);
+    }
+
+    .mode-name {
+      font-family: "Oswald", sans-serif;
+      color: white;
+      letter-spacing: 1px;
+    }
+
+    .mode-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    /* --- MAP AREA --- */
+    .map-panel {
+      position: relative;
+      background: radial-gradient(circle at 50% 50%,
+          rgba(20, 30, 40, 0.4),
+          #05060a 90%);
+      overflow: hidden;
+    }
+
+    #nav-map {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Floating Overlay on Map */
+    .map-overlay {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .overlay-chip {
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--border-color);
+      backdrop-filter: blur(4px);
+      padding: 8px 16px;
+      color: white;
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .overlay-chip i {
+      color: var(--accent-safe);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
       .main-layout {
-        display: grid;
-        grid-template-columns: var(--sidebar-width) 1fr;
-        height: calc(100vh - var(--header-height));
-        overflow: hidden;
+        grid-template-columns: 300px 1fr;
       }
 
-      /* --- SIDEBAR --- */
-      .sidebar-panel {
-        background: rgba(10, 12, 16, 0.95);
-        border-right: 1px solid var(--border-color);
-        padding: 20px;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 24px;
+      :root {
+        --sidebar-width: 300px;
       }
+    }
 
-      .panel-section {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
-
-      .section-header {
-        font-family: "Oswald", sans-serif;
-        font-size: 0.9rem;
-        color: var(--text-muted);
-        letter-spacing: 1.5px;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        padding-bottom: 4px;
-        margin-bottom: 4px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-      }
-
-      /* Camera Module (Integrated) */
-      .camera-module {
-        position: relative;
-        width: 100%;
-        aspect-ratio: 4/3; /* Standard webcam aspect */
-        background: #000;
-        border: 1px solid var(--border-color);
-        overflow: hidden;
-        border-radius: 4px;
-      }
-
-      .camera-module img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-
-      .camera-module canvas {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-      }
-
-      /* Placeholder for failed stream */
-      .camera-placeholder {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: #000;
-        display: none; /* Hidden by default */
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        color: var(--text-muted);
-        text-align: center;
-      }
-      
-      .camera-placeholder i {
-        font-size: 2rem;
-        margin-bottom: 10px;
-        color: var(--accent-fast);
-      }
-
-      .camera-placeholder span {
-        font-family: "Oswald", sans-serif;
-        letter-spacing: 2px;
-        font-size: 1.2rem;
-        color: white;
-      }
-
-      /* Battery Widget */
-      .battery-widget {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-color);
-        padding: 12px;
-        border-radius: 4px;
-      }
-
-      .battery-header {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 8px;
-        font-size: 0.8rem;
-        color: var(--text-muted);
-      }
-
-      .battery-bar-container {
-        height: 8px;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 2px;
-        overflow: hidden;
-      }
-
-      .battery-bar-fill {
-        height: 100%;
-        width: 0%; /* JS will update */
-        background: var(--accent-safe);
-        transition: width 0.5s ease, background 0.3s ease;
-      }
-
-      .battery-value {
-        font-family: "Space Mono", monospace;
-        color: white;
-      }
-
-      /* Navigation Modes (Compact) */
-      .mode-grid {
-        display: grid;
+    @media (max-width: 768px) {
+      .main-layout {
         grid-template-columns: 1fr;
-        gap: 8px;
+        grid-template-rows: auto 1fr;
       }
 
-      .mode-btn {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-color);
-        padding: 12px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
+      .sidebar-panel {
+        height: 300px;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
       }
+    }
 
-      .mode-btn:hover {
-        background: rgba(255, 255, 255, 0.08);
-      }
+    /* Zone Visibility */
+    .scenic-zone,
+    .comfort-zone,
+    .comfort-zone-corridor {
+      opacity: 0;
+      transition: opacity 0.5s ease;
+    }
 
-      .mode-btn.active {
-        border-color: var(--accent-safe);
-        background: rgba(21, 255, 185, 0.1);
-      }
+    .scenic-zone.active,
+    .comfort-zone.active,
+    .comfort-zone-corridor.active {
+      opacity: 1;
+    }
 
-      .mode-btn.active .mode-name {
-        color: var(--accent-safe);
-      }
+    /* Fix: Hide inactive route paths completely (override dashboard.css) */
+    .route-path {
+      opacity: 0 !important;
+    }
 
-      .mode-name {
-        font-family: "Oswald", sans-serif;
-        color: white;
-        letter-spacing: 1px;
-      }
+    .route-path.active {
+      opacity: 1 !important;
+    }
 
-      .mode-meta {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-      }
+    /* Collapsible Overlay Transitions */
+    .map-overlay {
+      transition: gap 0.4s ease;
+    }
 
-      /* --- MAP AREA --- */
-      .map-panel {
-        position: relative;
-        background: radial-gradient(
-            circle at 50% 50%,
-            rgba(20, 30, 40, 0.4),
-            #05060a 90%
-          );
-        overflow: hidden;
-      }
+    .map-overlay .overlay-chip {
+      transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      opacity: 1;
+      transform: translateX(0);
+      max-width: 200px;
+      /* Max width for expansion */
+      padding: 8px 16px;
+      margin: 0;
+      overflow: hidden;
+      white-space: nowrap;
+    }
 
-      #nav-map {
-        width: 100%;
-        height: 100%;
-        display: block;
-      }
+    /* Toggle Button stays visible */
+    .map-overlay .overlay-chip.toggle-btn {
+      z-index: 10;
+    }
 
-      /* Floating Overlay on Map */
-      .map-overlay {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        display: flex;
-        gap: 10px;
-      }
+    /* Collapsed State */
+    .map-overlay.collapsed {
+      gap: 0;
+      /* Remove gap between items */
+    }
 
-      .overlay-chip {
-        background: rgba(0, 0, 0, 0.6);
-        border: 1px solid var(--border-color);
-        backdrop-filter: blur(4px);
-        padding: 8px 16px;
-        color: white;
-        font-size: 0.85rem;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
+    .map-overlay.collapsed .overlay-chip:not(.toggle-btn) {
+      opacity: 0;
+      transform: translateX(-20px);
+      max-width: 0;
+      padding: 8px 0;
+      /* Remove horizontal padding */
+      border-width: 0;
+      pointer-events: none;
+    }
 
-      .overlay-chip i {
-        color: var(--accent-safe);
-      }
+    /* Mode Details Banner */
+    #mode-details {
+      margin-top: 16px;
+      border: 1px solid var(--border-color);
+      background: rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      display: none;
+      /* Hidden until mode selected */
+      animation: fadeIn 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
 
-      /* Responsive */
-      @media (max-width: 1024px) {
-        .main-layout {
-          grid-template-columns: 300px 1fr;
-        }
-        :root {
-          --sidebar-width: 300px;
-        }
-      }
-      
-      @media (max-width: 768px) {
-        .main-layout {
-          grid-template-columns: 1fr;
-          grid-template-rows: auto 1fr;
-        }
-        .sidebar-panel {
-          height: 300px;
-          border-right: none;
-          border-bottom: 1px solid var(--border-color);
-        }
-      }
+    #mode-details.active {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-      /* Zone Visibility */
-      .scenic-zone, .comfort-zone, .comfort-zone-corridor {
+    .mode-banner-header {
+      font-family: "Oswald", sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 1px;
+      color: white;
+      text-transform: uppercase;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mode-banner-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .mode-stat-bar {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .stat-track {
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      width: 100%;
+      border-radius: 2px;
+    }
+
+    .stat-fill {
+      height: 100%;
+      background: var(--accent-safe);
+      width: 0%;
+      transition: width 0.5s ease, background 0.3s ease;
+      border-radius: 2px;
+    }
+
+    @keyframes fadeIn {
+      from {
         opacity: 0;
-        transition: opacity 0.5s ease;
+        transform: translateY(5px);
       }
-      .scenic-zone.active, .comfort-zone.active, .comfort-zone-corridor.active {
+
+      to {
         opacity: 1;
+        transform: translateY(0);
       }
+    }
+  </style>
+</head>
 
-      /* Fix: Hide inactive route paths completely (override dashboard.css) */
-      .route-path {
-        opacity: 0 !important;
-      }
-      .route-path.active {
-        opacity: 1 !important;
-      }
+<body>
+  <!-- Custom Cursor -->
+  <div id="custom-cursor"></div>
+  <!-- CRT Scanline Overlay -->
+  <div class="crt-overlay"></div>
 
-      /* Collapsible Overlay Transitions */
-      .map-overlay {
-        transition: gap 0.4s ease;
-      }
-      
-      .map-overlay .overlay-chip {
-        transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-        opacity: 1;
-        transform: translateX(0);
-        max-width: 200px; /* Max width for expansion */
-        padding: 8px 16px;
-        margin: 0;
-        overflow: hidden;
-        white-space: nowrap;
-      }
-
-      /* Toggle Button stays visible */
-      .map-overlay .overlay-chip.toggle-btn {
-        z-index: 10;
-      }
-
-      /* Collapsed State */
-      .map-overlay.collapsed {
-        gap: 0; /* Remove gap between items */
-      }
-
-      .map-overlay.collapsed .overlay-chip:not(.toggle-btn) {
-        opacity: 0;
-        transform: translateX(-20px);
-        max-width: 0;
-        padding: 8px 0; /* Remove horizontal padding */
-        border-width: 0;
-        pointer-events: none;
-      }
-      /* Mode Details Banner */
-      #mode-details {
-        margin-top: 16px;
-        border: 1px solid var(--border-color);
-        background: rgba(0, 0, 0, 0.4);
-        padding: 16px;
-        display: none; /* Hidden until mode selected */
-        animation: fadeIn 0.3s ease;
-        position: relative;
-        overflow: hidden;
-      }
-      
-      #mode-details.active {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-
-      .mode-banner-header {
-        font-family: "Oswald", sans-serif;
-        font-size: 1.1rem;
-        letter-spacing: 1px;
-        color: white;
-        text-transform: uppercase;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-
-      .mode-banner-desc {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        line-height: 1.4;
-      }
-
-      .mode-stat-bar {
-        margin-top: 8px;
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      
-      .stat-label {
-        font-size: 0.7rem;
-        color: var(--text-muted);
-        display: flex;
-        justify-content: space-between;
-      }
-      
-      .stat-track {
-        height: 4px;
-        background: rgba(255,255,255,0.1);
-        width: 100%;
-        border-radius: 2px;
-      }
-      
-      .stat-fill {
-        height: 100%;
-        background: var(--accent-safe);
-        width: 0%;
-        transition: width 0.5s ease, background 0.3s ease;
-        border-radius: 2px;
-      }
-
-      @keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Custom Cursor -->
-    <div id="custom-cursor"></div>
-    <!-- CRT Scanline Overlay -->
-    <div class="crt-overlay"></div>
-
-    <!-- Navigation -->
-    <nav>
-      <div class="nav-container">
-        <a href="navx/index.html" class="logo">NAV//X</a>
-        <ul class="nav-links">
-          <li><a href="navx/index.html#hero">00_Home</a></li>
-          <li><a href="navx/dashboard.html">04_Dashboard</a></li>
-          <li>
-            <a
-              href="camera.html"
-              style="color: white; text-decoration: line-through"
-              >05_Vision</a
-            >
-          </li>
-        </ul>
-      </div>
-    </nav>
-
-    <!-- Main Layout -->
-    <div class="main-layout">
-      <!-- SIDEBAR -->
-      <aside class="sidebar-panel">
-        
-        <!-- 1. Vision Feed Module -->
-        <div class="panel-section">
-          <div class="section-header">
-            <span>LIVE FEED</span>
-            <span id="cam-status" style="font-size: 0.7rem; color: var(--accent-safe)">● ONLINE</span>
-          </div>
-          <div class="camera-module">
-            <!-- Stream Image -->
-            <img
-              id="camera-stream"
-              src="http://172.20.10.10:8080/?action=stream"
-              alt="Stream"
-              onerror="handleStreamError()"
-              onload="handleStreamSuccess()"
-            />
-            <!-- AI Overlay -->
-            <canvas id="ai-layer"></canvas>
-            <!-- Error Placeholder -->
-            <div id="cam-placeholder" class="camera-placeholder">
-              <i class="fas fa-video-slash"></i>
-              <span>NAV//X<br><span style="font-size:0.8rem; opacity:0.7">SIGNAL LOST</span></span>
-            </div>
-          </div>
-        </div>
-
-        <!-- 2. System Status (Battery & Weather) -->
-        <div class="panel-section">
-          <div class="section-header">SYSTEM STATUS</div>
-          
-          <!-- Battery Widget -->
-          <div class="battery-widget">
-            <div class="battery-header">
-              <span>BATTERY LEVEL</span>
-              <span id="battery-val" class="battery-value">--%</span>
-            </div>
-            <div class="battery-bar-container">
-              <div id="battery-fill" class="battery-bar-fill"></div>
-            </div>
-          </div>
-
-          <!-- Weather Widget (Restored) -->
-          <div class="battery-widget" style="margin-top: 8px;">
-             <div class="battery-header" style="margin-bottom: 4px;">
-                <span>INCHEON WX</span>
-                <span id="weather-updated" style="font-size: 0.7rem">--:--</span>
-             </div>
-             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <i id="weather-icon" class="fas fa-sun" style="color: var(--accent-safe)"></i>
-                    <span id="weather-temp" style="font-family: 'Oswald'; font-size: 1.2rem; color: white;">--°</span>
-                </div>
-                <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted);">
-                    <div id="weather-desc">Loading...</div>
-                    <div id="weather-wind">-- km/h</div>
-                </div>
-             </div>
-          </div>
-
-          <!-- Connection Status -->
-           <div class="battery-widget" style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-              <span style="font-size: 0.8rem; color: var(--text-muted)">AI SERVER</span>
-              <span id="server-status" style="font-size: 0.8rem; color: var(--accent-fast)">DISCONNECTED</span>
-           </div>
-        </div>
-
-        <!-- 3. Navigation Modes -->
-        <div class="panel-section">
-          <div class="section-header">NAVIGATION MODE</div>
-          <div class="mode-grid">
-            <div class="mode-btn active" onclick="setRoute('fastest')" data-mode="fastest">
-              <span class="mode-name">FASTEST</span>
-              <span class="mode-meta">12 min</span>
-            </div>
-            <div class="mode-btn" onclick="setRoute('scenic')" data-mode="scenic">
-              <span class="mode-name">SCENIC</span>
-              <span class="mode-meta">24 min</span>
-            </div>
-            <div class="mode-btn" onclick="setRoute('comfort')" data-mode="comfort">
-              <span class="mode-name">COMFORT</span>
-              <span class="mode-meta">18 min</span>
-            </div>
-          </div>
-
-          <!-- Mode Details Banner -->
-          <div id="mode-details">
-             <div class="mode-banner-header" id="md-header">
-                <i class="fas fa-info-circle"></i> <span>--</span>
-             </div>
-             <div class="mode-banner-desc" id="md-desc">--</div>
-             
-             <!-- Stats -->
-             <div class="mode-stat-bar">
-                <div class="stat-label"><span>EFFICIENCY</span><span id="md-eff-val">0%</span></div>
-                <div class="stat-track"><div class="stat-fill" id="md-eff-fill"></div></div>
-             </div>
-             <div class="mode-stat-bar">
-                <div class="stat-label"><span>SAFETY</span><span id="md-safe-val">0%</span></div>
-                <div class="stat-track"><div class="stat-fill" id="md-safe-fill"></div></div>
-             </div>
-          </div>
-        </div>
-
-        <!-- 4. Metrics (Removed, moved to map) -->
-      </aside>
-
-      <!-- MAP AREA -->
-      <main class="map-panel">
-        <div class="map-overlay" id="telemetry-overlay">
-           <!-- Toggle Button -->
-           <div class="overlay-chip toggle-btn" onclick="toggleTelemetry()" style="cursor: pointer; padding: 8px 12px;">
-             <i class="fas fa-eye" id="tele-toggle-icon"></i>
-           </div>
-
-           <div class="overlay-chip" id="map-status-chip">
-             <i class="fas fa-shield-alt"></i> ROUTE STABLE
-           </div>
-           <div class="overlay-chip">
-             <i class="fas fa-location-arrow"></i> INCHEON
-           </div>
-           <!-- Moved Telemetry -->
-           <div class="overlay-chip">
-             <span style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">RISK</span>
-             <span id="tele-risk" style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">--</span>
-           </div>
-           <div class="overlay-chip">
-             <span style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">SPEED</span>
-             <span style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">
-                <span id="tele-speed">--</span> <span style="font-size:0.8rem">km/h</span>
-             </span>
-           </div>
-        </div>
-
-        <!-- SVG Map (Same as before, just ensuring it fills) -->
-        <svg
-          id="nav-map"
-          viewBox="-300 -200 1600 1200"
-          preserveAspectRatio="xMidYMid slice"
-        >
-          <!-- Map Background -->
-          <rect x="-3000" y="-3000" width="8000" height="8000" class="map-bg" />
-          <rect x="0" y="0" width="800" height="800" class="map-bg" opacity="0.85" />
-
-          <!-- Zones -->
-          <path d="M -400 720 L 780 720 L 780 840 L -400 840 Z" class="scenic-zone" />
-          <rect x="-100" y="-60" width="1300" height="80" class="comfort-zone" />
-          <rect x="-60" y="-400" width="80" height="1600" class="comfort-zone-corridor" />
-
-          <!-- Buildings (Simplified for brevity, but keeping structure) -->
-          <g class="buildings">
-             <!-- We reuse the building logic from previous file, abbreviated here for clarity but fully functional in logic -->
-             <!-- Block 1 -->
-             <g transform="translate(160,160)" data-building data-x="200" data-y="200">
-               <path d="M 20 20 L 100 20 L 100 100 L 20 100 Z" class="building-3d" transform="translate(-15,15)" />
-               <rect width="80" height="80" class="building" />
-             </g>
-             <!-- Block 2 -->
-             <g transform="translate(460,620)" data-building data-x="500" data-y="660">
-               <path d="M 0 0 L 100 0 L 100 100 L 0 100 Z" class="building-3d" transform="translate(-15,15)" />
-               <rect width="100" height="100" class="building" />
-             </g>
-             <!-- More buildings would go here, keeping it clean for this rewrite -->
-             <g transform="translate(600,40)" data-building data-x="630" data-y="70">
-                <rect width="70" height="70" class="building" />
-             </g>
-             <g transform="translate(90,600)" data-building data-x="120" data-y="630">
-                <rect width="80" height="80" class="building" />
-             </g>
-             <g transform="translate(320,120)" data-building data-x="360" data-y="160">
-                <rect width="80" height="80" class="building" />
-             </g>
-          </g>
-
-          <!-- Roads -->
-          <g>
-            <!-- Diagonal -->
-            <path d="M -200 1000 L 1000 -200" stroke-width="80" class="road-casing" />
-            <path d="M -200 1000 L 1000 -200" stroke-width="60" class="road-core" />
-            <path d="M -200 1000 L 1000 -200" class="road-centerline" />
-          </g>
-          <g>
-            <!-- Vertical/Horizontal -->
-            <path d="M 20 2000 L 20 -500" stroke-width="60" class="road-casing" />
-            <path d="M 20 2000 L 20 -500" stroke-width="40" class="road-core" />
-            <path d="M -500 20 L 2000 20" stroke-width="60" class="road-casing" />
-            <path d="M -500 20 L 2000 20" stroke-width="40" class="road-core" />
-            <path d="M 20 2000 L 20 -500" class="road-centerline" />
-            <path d="M -500 20 L 2000 20" class="road-centerline" />
-          </g>
-          <g>
-             <!-- Scenic Route Roads -->
-            <path d="M -500 780 L 2000 780" stroke-width="60" class="road-casing" />
-            <path d="M -500 780 L 2000 780" stroke-width="40" class="road-core" />
-            <path d="M 780 2000 L 780 -500" stroke-width="60" class="road-casing" />
-            <path d="M 780 2000 L 780 -500" stroke-width="40" class="road-core" />
-            <path d="M -500 780 L 2000 780" class="road-centerline" />
-            <path d="M 780 2000 L 780 -500" class="road-centerline" />
-          </g>
-
-          <!-- Routes -->
-          <path id="path-fastest" class="route-path active" d="M -100 900 L 900 -100" stroke="#ff0055" />
-          <path id="path-comfort" class="route-path" d="M 20 1200 L 20 20 L 1200 20" stroke="#00ffaa" />
-          <path id="path-scenic" class="route-path" d="M -400 780 L 780 780 L 780 -400" stroke="#00aaff" />
-
-          <!-- POIs -->
-          <g class="pois">
-            <g transform="translate(20,780)">
-              <circle r="6" class="poi-marker gas" />
-              <text x="12" y="3" class="poi-label">FUEL</text>
-            </g>
-            <g transform="translate(780,20)">
-              <circle r="6" class="poi-marker waypoint" />
-              <text x="12" y="3" class="poi-label">HUB</text>
-            </g>
-          </g>
-
-          <!-- Street Labels -->
-          <text x="400" y="380" class="street-label" transform="rotate(-45,400,380)">TRANSIT ARTERY 01</text>
-          <text x="50" y="400" class="street-label" transform="rotate(-90,50,400)">COMMERCE BLVD</text>
-
-          <!-- Robot Agent -->
-          <g id="agent" class="nav-agent">
-            <g class="agent-car">
-              <rect class="car-body" x="-14" y="-8" width="28" height="16" rx="4" />
-              <rect class="car-cabin" x="-10" y="-6" width="10" height="12" rx="2" />
-              <circle class="car-light" cx="10" cy="-4" r="2" />
-              <circle class="car-light" cx="10" cy="4" r="2" />
-              <path class="car-shadow" d="M -16 9 L 16 9" />
-            </g>
-          </g>
-        </svg>
-      </main>
+  <!-- Navigation -->
+  <nav>
+    <div class="nav-container">
+      <a href="navx/index.html" class="logo">NAV//X</a>
+      <ul class="nav-links">
+        <li><a href="navx/index.html#hero">00_Home</a></li>
+        <li><a href="navx/dashboard.html">04_Dashboard</a></li>
+        <li>
+          <a href="camera.html" style="color: white; text-decoration: line-through">05_Vision</a>
+        </li>
+      </ul>
     </div>
+  </nav>
 
-    <script>
-      // --- Custom Cursor ---
-      const cursor = document.getElementById("custom-cursor");
-      document.addEventListener("mousemove", (e) => {
-        cursor.style.left = e.clientX + "px";
-        cursor.style.top = e.clientY + "px";
+  <!-- Main Layout -->
+  <div class="main-layout">
+    <!-- SIDEBAR -->
+    <aside class="sidebar-panel">
+
+      <!-- 1. Vision Feed Module -->
+      <div class="panel-section">
+        <div class="section-header">
+          <span>LIVE FEED</span>
+          <span id="cam-status" style="font-size: 0.7rem; color: var(--accent-safe)">● ONLINE</span>
+        </div>
+        <div class="camera-module">
+          <!-- Stream Image -->
+          <img id="camera-stream" src="http://172.20.10.10:8080/?action=stream" alt="Stream"
+            onerror="handleStreamError()" onload="handleStreamSuccess()" />
+          <!-- AI Overlay -->
+          <canvas id="ai-layer"></canvas>
+          <!-- Error Placeholder -->
+          <div id="cam-placeholder" class="camera-placeholder">
+            <i class="fas fa-video-slash"></i>
+            <span>NAV//X<br><span style="font-size:0.8rem; opacity:0.7">SIGNAL LOST</span></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. System Status (Battery & Weather) -->
+      <div class="panel-section">
+        <div class="section-header">SYSTEM STATUS</div>
+
+        <!-- Battery Widget -->
+        <div class="battery-widget">
+          <div class="battery-header">
+            <span>BATTERY LEVEL</span>
+            <span id="battery-val" class="battery-value">--%</span>
+          </div>
+          <div class="battery-bar-container">
+            <div id="battery-fill" class="battery-bar-fill"></div>
+          </div>
+        </div>
+
+        <!-- Weather Widget (Restored) -->
+        <div class="battery-widget" style="margin-top: 8px;">
+          <div class="battery-header" style="margin-bottom: 4px;">
+            <span>INCHEON WX</span>
+            <span id="weather-updated" style="font-size: 0.7rem">--:--</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <i id="weather-icon" class="fas fa-sun" style="color: var(--accent-safe)"></i>
+              <span id="weather-temp" style="font-family: 'Oswald'; font-size: 1.2rem; color: white;">--°</span>
+            </div>
+            <div style="text-align: right; font-size: 0.75rem; color: var(--text-muted);">
+              <div id="weather-desc">Loading...</div>
+              <div id="weather-wind">-- km/h</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Connection Status -->
+        <div class="battery-widget"
+          style="padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+          <span style="font-size: 0.8rem; color: var(--text-muted)">AI SERVER</span>
+          <span id="server-status" style="font-size: 0.8rem; color: var(--accent-fast)">DISCONNECTED</span>
+        </div>
+      </div>
+
+      <!-- 3. Navigation Modes -->
+      <div class="panel-section">
+        <div class="section-header">NAVIGATION MODE</div>
+        <div class="mode-grid">
+          <div class="mode-btn active" onclick="setRoute('fastest')" data-mode="fastest">
+            <span class="mode-name">FASTEST</span>
+            <span class="mode-meta">12 min</span>
+          </div>
+          <div class="mode-btn" onclick="setRoute('scenic')" data-mode="scenic">
+            <span class="mode-name">SCENIC</span>
+            <span class="mode-meta">24 min</span>
+          </div>
+          <div class="mode-btn" onclick="setRoute('comfort')" data-mode="comfort">
+            <span class="mode-name">COMFORT</span>
+            <span class="mode-meta">18 min</span>
+          </div>
+        </div>
+
+        <!-- Mode Details Banner -->
+        <div id="mode-details">
+          <div class="mode-banner-header" id="md-header">
+            <i class="fas fa-info-circle"></i> <span>--</span>
+          </div>
+          <div class="mode-banner-desc" id="md-desc">--</div>
+
+          <!-- Stats -->
+          <div class="mode-stat-bar">
+            <div class="stat-label"><span>EFFICIENCY</span><span id="md-eff-val">0%</span></div>
+            <div class="stat-track">
+              <div class="stat-fill" id="md-eff-fill"></div>
+            </div>
+          </div>
+          <div class="mode-stat-bar">
+            <div class="stat-label"><span>SAFETY</span><span id="md-safe-val">0%</span></div>
+            <div class="stat-track">
+              <div class="stat-fill" id="md-safe-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. Metrics (Removed, moved to map) -->
+    </aside>
+
+    <!-- MAP AREA -->
+    <main class="map-panel">
+      <div class="map-overlay" id="telemetry-overlay">
+        <!-- Toggle Button -->
+        <div class="overlay-chip toggle-btn" onclick="toggleTelemetry()" style="cursor: pointer; padding: 8px 12px;">
+          <i class="fas fa-eye" id="tele-toggle-icon"></i>
+        </div>
+
+        <div class="overlay-chip" id="map-status-chip">
+          <i class="fas fa-shield-alt"></i> ROUTE STABLE
+        </div>
+        <div class="overlay-chip">
+          <i class="fas fa-location-arrow"></i> INCHEON
+        </div>
+        <!-- Moved Telemetry -->
+        <div class="overlay-chip">
+          <span
+            style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">RISK</span>
+          <span id="tele-risk" style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">--</span>
+        </div>
+        <div class="overlay-chip">
+          <span
+            style="color: var(--text-muted); margin-right: 8px; font-size: 0.75rem; letter-spacing: 1px;">SPEED</span>
+          <span style="font-family: 'Oswald'; font-size: 1.1rem; color: white;">
+            <span id="tele-speed">--</span> <span style="font-size:0.8rem">km/h</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- SVG Map (Same as before, just ensuring it fills) -->
+      <svg id="nav-map" viewBox="-300 -200 1600 1200" preserveAspectRatio="xMidYMid slice">
+        <!-- Map Background -->
+        <rect x="-3000" y="-3000" width="8000" height="8000" class="map-bg" />
+        <rect x="0" y="0" width="800" height="800" class="map-bg" opacity="0.85" />
+
+        <!-- Zones -->
+        <path d="M -400 720 L 780 720 L 780 840 L -400 840 Z" class="scenic-zone" />
+        <rect x="-100" y="-60" width="1300" height="80" class="comfort-zone" />
+        <rect x="-60" y="-400" width="80" height="1600" class="comfort-zone-corridor" />
+
+        <!-- Buildings (Simplified for brevity, but keeping structure) -->
+        <g class="buildings">
+          <!-- We reuse the building logic from previous file, abbreviated here for clarity but fully functional in logic -->
+          <!-- Block 1 -->
+          <g transform="translate(160,160)" data-building data-x="200" data-y="200">
+            <path d="M 20 20 L 100 20 L 100 100 L 20 100 Z" class="building-3d" transform="translate(-15,15)" />
+            <rect width="80" height="80" class="building" />
+          </g>
+          <!-- Block 2 -->
+          <g transform="translate(460,620)" data-building data-x="500" data-y="660">
+            <path d="M 0 0 L 100 0 L 100 100 L 0 100 Z" class="building-3d" transform="translate(-15,15)" />
+            <rect width="100" height="100" class="building" />
+          </g>
+          <!-- More buildings would go here, keeping it clean for this rewrite -->
+          <g transform="translate(600,40)" data-building data-x="630" data-y="70">
+            <rect width="70" height="70" class="building" />
+          </g>
+          <g transform="translate(90,600)" data-building data-x="120" data-y="630">
+            <rect width="80" height="80" class="building" />
+          </g>
+          <g transform="translate(320,120)" data-building data-x="360" data-y="160">
+            <rect width="80" height="80" class="building" />
+          </g>
+        </g>
+
+        <!-- Roads -->
+        <g>
+          <!-- Diagonal -->
+          <path d="M -200 1000 L 1000 -200" stroke-width="80" class="road-casing" />
+          <path d="M -200 1000 L 1000 -200" stroke-width="60" class="road-core" />
+          <path d="M -200 1000 L 1000 -200" class="road-centerline" />
+        </g>
+        <g>
+          <!-- Vertical/Horizontal -->
+          <path d="M 20 2000 L 20 -500" stroke-width="60" class="road-casing" />
+          <path d="M 20 2000 L 20 -500" stroke-width="40" class="road-core" />
+          <path d="M -500 20 L 2000 20" stroke-width="60" class="road-casing" />
+          <path d="M -500 20 L 2000 20" stroke-width="40" class="road-core" />
+          <path d="M 20 2000 L 20 -500" class="road-centerline" />
+          <path d="M -500 20 L 2000 20" class="road-centerline" />
+        </g>
+        <g>
+          <!-- Scenic Route Roads -->
+          <path d="M -500 780 L 2000 780" stroke-width="60" class="road-casing" />
+          <path d="M -500 780 L 2000 780" stroke-width="40" class="road-core" />
+          <path d="M 780 2000 L 780 -500" stroke-width="60" class="road-casing" />
+          <path d="M 780 2000 L 780 -500" stroke-width="40" class="road-core" />
+          <path d="M -500 780 L 2000 780" class="road-centerline" />
+          <path d="M 780 2000 L 780 -500" class="road-centerline" />
+        </g>
+
+        <!-- Routes -->
+        <path id="path-fastest" class="route-path active" d="M -100 900 L 900 -100" stroke="#ff0055" />
+        <path id="path-comfort" class="route-path" d="M 20 1200 L 20 20 L 1200 20" stroke="#00ffaa" />
+        <path id="path-scenic" class="route-path" d="M -400 780 L 780 780 L 780 -400" stroke="#00aaff" />
+
+        <!-- POIs -->
+        <g class="pois">
+          <g transform="translate(20,780)">
+            <circle r="6" class="poi-marker gas" />
+            <text x="12" y="3" class="poi-label">FUEL</text>
+          </g>
+          <g transform="translate(780,20)">
+            <circle r="6" class="poi-marker waypoint" />
+            <text x="12" y="3" class="poi-label">HUB</text>
+          </g>
+        </g>
+
+        <!-- Street Labels -->
+        <text x="400" y="380" class="street-label" transform="rotate(-45,400,380)">TRANSIT ARTERY 01</text>
+        <text x="50" y="400" class="street-label" transform="rotate(-90,50,400)">COMMERCE BLVD</text>
+
+        <!-- Robot Agent -->
+        <g id="agent" class="nav-agent">
+          <g class="agent-car">
+            <rect class="car-body" x="-14" y="-8" width="28" height="16" rx="4" />
+            <rect class="car-cabin" x="-10" y="-6" width="10" height="12" rx="2" />
+            <circle class="car-light" cx="10" cy="-4" r="2" />
+            <circle class="car-light" cx="10" cy="4" r="2" />
+            <path class="car-shadow" d="M -16 9 L 16 9" />
+          </g>
+        </g>
+      </svg>
+    </main>
+  </div>
+
+  <script>
+    // --- Custom Cursor ---
+    const cursor = document.getElementById("custom-cursor");
+    document.addEventListener("mousemove", (e) => {
+      cursor.style.left = e.clientX + "px";
+      cursor.style.top = e.clientY + "px";
+    });
+
+    // --- Stream Error Handling ---
+    // --- Stream Health Monitor & Auto-Reconnect ---
+    const STREAM_URL = "http://172.20.10.10:8080/?action=stream";
+    const SNAPSHOT_URL = "http://172.20.10.10:8080/?action=snapshot";
+    let isStreamOnline = true; // Assume online initially, let checks correct it
+
+    // Periodically check if the camera is actually alive
+    setInterval(() => {
+      const tester = new Image();
+      tester.onload = () => {
+        // Camera is responding
+        if (!isStreamOnline) {
+          console.log("Health check passed: Stream returned!");
+          isStreamOnline = true;
+          handleStreamSuccess();
+          // Force reconnect the main stream
+          document.getElementById("camera-stream").src = `${STREAM_URL}&t=${Date.now()}`;
+        }
+      };
+      tester.onerror = () => {
+        // Camera is dead
+        // We check if it WAS online to avoid spamming logs/UI updates
+        // But we also force it if the UI is currently showing the image (frozen frame case)
+        const img = document.getElementById("camera-stream");
+        if (isStreamOnline || img.style.display !== "none") {
+          console.log("Health check failed: Stream lost!");
+          isStreamOnline = false;
+          handleStreamError();
+        }
+      };
+      // Add timestamp to bypass cache
+      tester.src = `${SNAPSHOT_URL}&t=${Date.now()}`;
+    }, 5000); // Check every 5 seconds
+
+    function handleStreamError() {
+      const img = document.getElementById("camera-stream");
+      const placeholder = document.getElementById("cam-placeholder");
+      const status = document.getElementById("cam-status");
+
+      // Update UI to "Lost" state
+      img.style.display = "none";
+      placeholder.style.display = "flex";
+
+      if (status) {
+        status.textContent = "● SIGNAL LOST";
+        status.style.color = "var(--accent-fast)";
+      }
+
+      isStreamOnline = false;
+    }
+
+    function handleStreamSuccess() {
+      const img = document.getElementById("camera-stream");
+      const placeholder = document.getElementById("cam-placeholder");
+      const status = document.getElementById("cam-status");
+
+      // Restore UI
+      img.style.display = "block";
+      placeholder.style.display = "none";
+
+      if (status) {
+        status.textContent = "● ONLINE";
+        status.style.color = "var(--accent-safe)";
+      }
+
+      isStreamOnline = true;
+    }
+
+    /* --- Map & Navigation Logic --- */
+    const routes = {
+      fastest: { id: "path-fastest", baseRisk: 6.5, speed: 80 },
+      scenic: { id: "path-scenic", baseRisk: 1.2, speed: 45 },
+      comfort: { id: "path-comfort", baseRisk: 2.5, speed: 55 },
+    };
+    let activeMode = "fastest";
+
+    const modeData = {
+      fastest: {
+        title: "SPEED PRIORITY",
+        desc: "Optimized for minimum travel time. Higher risk tolerance allowed in non-residential zones.",
+        eff: 95,
+        safe: 60,
+        color: "#ff0055"
+      },
+      scenic: {
+        title: "SCENIC ROUTE",
+        desc: "Maximizes coastal and park views. Speed limited for passenger comfort.",
+        eff: 40,
+        safe: 98,
+        color: "#00aaff"
+      },
+      comfort: {
+        title: "PASSENGER COMFORT",
+        desc: "Balanced profile with strict G-force limits. Smoothest ride quality.",
+        eff: 70,
+        safe: 90,
+        color: "#00ffaa"
+      }
+    };
+
+    function setRoute(mode) {
+      activeMode = mode;
+
+      // Update Buttons
+      document.querySelectorAll(".mode-btn").forEach(btn => {
+        btn.classList.remove("active");
+        if (btn.dataset.mode === mode) btn.classList.add("active");
       });
 
-      // --- Stream Error Handling ---
-      // --- Stream Health Monitor & Auto-Reconnect ---
-      const STREAM_URL = "http://172.20.10.10:8080/?action=stream";
-      const SNAPSHOT_URL = "http://172.20.10.10:8080/?action=snapshot";
-      let isStreamOnline = true; // Assume online initially, let checks correct it
+      // Update Paths
+      document.querySelectorAll(".route-path").forEach(p => p.classList.remove("active"));
+      const path = document.getElementById(routes[mode].id);
+      if (path) path.classList.add("active");
 
-      // Periodically check if the camera is actually alive
-      setInterval(() => {
-        const tester = new Image();
-        tester.onload = () => {
-            // Camera is responding
-            if(!isStreamOnline) {
-                console.log("Health check passed: Stream returned!");
-                isStreamOnline = true;
-                handleStreamSuccess();
-                // Force reconnect the main stream
-                document.getElementById("camera-stream").src = `${STREAM_URL}&t=${Date.now()}`;
-            }
-        };
-        tester.onerror = () => {
-            // Camera is dead
-            // We check if it WAS online to avoid spamming logs/UI updates
-            // But we also force it if the UI is currently showing the image (frozen frame case)
-            const img = document.getElementById("camera-stream");
-            if(isStreamOnline || img.style.display !== "none") {
-                console.log("Health check failed: Stream lost!");
-                isStreamOnline = false;
-                handleStreamError();
-            }
-        };
-        // Add timestamp to bypass cache
-        tester.src = `${SNAPSHOT_URL}&t=${Date.now()}`;
-      }, 2000); // Check every 2 seconds
+      // Update Zones
+      document.querySelectorAll(".scenic-zone, .comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.remove("active"));
 
-      function handleStreamError() {
-        const img = document.getElementById("camera-stream");
-        const placeholder = document.getElementById("cam-placeholder");
-        const status = document.getElementById("cam-status");
-        
-        // Update UI to "Lost" state
-        img.style.display = "none";
-        placeholder.style.display = "flex";
-        
-        if(status) {
-            status.textContent = "● SIGNAL LOST";
-            status.style.color = "var(--accent-fast)";
-        }
-        
-        isStreamOnline = false;
+      if (mode === 'scenic') {
+        document.querySelectorAll(".scenic-zone").forEach(el => el.classList.add("active"));
+      } else if (mode === 'comfort') {
+        document.querySelectorAll(".comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.add("active"));
       }
 
-      function handleStreamSuccess() {
-        const img = document.getElementById("camera-stream");
-        const placeholder = document.getElementById("cam-placeholder");
-        const status = document.getElementById("cam-status");
+      updateTelemetry();
+      updateModeBanner(mode);
+    }
 
-        // Restore UI
-        img.style.display = "block";
-        placeholder.style.display = "none";
-        
-        if(status) {
-            status.textContent = "● ONLINE";
-            status.style.color = "var(--accent-safe)";
-        }
-        
-        isStreamOnline = true;
+    function updateModeBanner(mode) {
+      const details = document.getElementById("mode-details");
+      const data = modeData[mode];
+
+      if (!data) return;
+
+      details.classList.add("active");
+
+      // Update Header Color
+      const headerIcon = details.querySelector(".mode-banner-header i");
+      headerIcon.style.color = data.color;
+
+      // Update Text
+      const headerSpan = document.getElementById("md-header").querySelector("span");
+      headerSpan.innerText = data.title;
+      headerSpan.style.color = data.color;
+
+      document.getElementById("md-desc").innerText = data.desc;
+
+      // Update Bars
+      document.getElementById("md-eff-val").innerText = data.eff + "%";
+      document.getElementById("md-eff-fill").style.width = data.eff + "%";
+      document.getElementById("md-eff-fill").style.background = data.color;
+
+      document.getElementById("md-safe-val").innerText = data.safe + "%";
+      document.getElementById("md-safe-fill").style.width = data.safe + "%";
+      document.getElementById("md-safe-fill").style.background = data.color;
+
+      // Border accent
+      details.style.borderLeft = `4px solid ${data.color}`;
+    }
+
+    function updateTelemetry() {
+      const route = routes[activeMode];
+      const risk = route.baseRisk;
+      const speed = route.speed;
+
+      document.getElementById("tele-risk").innerText = risk;
+      document.getElementById("tele-speed").innerText = speed;
+
+      // Update Map Chip
+      const chip = document.getElementById("map-status-chip");
+      if (risk > 5) {
+        chip.innerHTML = '<i class="fas fa-exclamation-triangle"></i> HIGH RISK';
+        chip.style.color = "var(--accent-fast)";
+        chip.style.borderColor = "var(--accent-fast)";
+      } else {
+        chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
+        chip.style.color = "var(--accent-safe)";
+        chip.style.borderColor = "rgba(255,255,255,0.1)";
       }
+    }
 
-      /* --- Map & Navigation Logic --- */
-      const routes = {
-        fastest: { id: "path-fastest", baseRisk: 6.5, speed: 80 },
-        scenic: { id: "path-scenic", baseRisk: 1.2, speed: 45 },
-        comfort: { id: "path-comfort", baseRisk: 2.5, speed: 55 },
-      };
-      let activeMode = "fastest";
+    function toggleTelemetry() {
+      const overlay = document.getElementById("telemetry-overlay");
+      const icon = document.getElementById("tele-toggle-icon");
+      overlay.classList.toggle("collapsed");
 
-      const modeData = {
-        fastest: { 
-           title: "SPEED PRIORITY", 
-           desc: "Optimized for minimum travel time. Higher risk tolerance allowed in non-residential zones.",
-           eff: 95,
-           safe: 60,
-           color: "#ff0055"
-        },
-        scenic: { 
-           title: "SCENIC ROUTE", 
-           desc: "Maximizes coastal and park views. Speed limited for passenger comfort.",
-           eff: 40,
-           safe: 98,
-           color: "#00aaff"
-        },
-        comfort: { 
-           title: "PASSENGER COMFORT", 
-           desc: "Balanced profile with strict G-force limits. Smoothest ride quality.",
-           eff: 70,
-           safe: 90,
-           color: "#00ffaa"
-        }
-      };
-
-      function setRoute(mode) {
-        activeMode = mode;
-        
-        // Update Buttons
-        document.querySelectorAll(".mode-btn").forEach(btn => {
-            btn.classList.remove("active");
-            if(btn.dataset.mode === mode) btn.classList.add("active");
-        });
-
-        // Update Paths
-        document.querySelectorAll(".route-path").forEach(p => p.classList.remove("active"));
-        const path = document.getElementById(routes[mode].id);
-        if(path) path.classList.add("active");
-
-        // Update Zones
-        document.querySelectorAll(".scenic-zone, .comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.remove("active"));
-        
-        if(mode === 'scenic') {
-            document.querySelectorAll(".scenic-zone").forEach(el => el.classList.add("active"));
-        } else if(mode === 'comfort') {
-            document.querySelectorAll(".comfort-zone, .comfort-zone-corridor").forEach(el => el.classList.add("active"));
-        }
-
-        updateTelemetry();
-        updateModeBanner(mode);
+      if (overlay.classList.contains("collapsed")) {
+        icon.className = "fas fa-eye-slash";
+      } else {
+        icon.className = "fas fa-eye";
       }
-
-      function updateModeBanner(mode) {
-        const details = document.getElementById("mode-details");
-        const data = modeData[mode];
-        
-        if(!data) return;
-        
-        details.classList.add("active");
-        
-        // Update Header Color
-        const headerIcon = details.querySelector(".mode-banner-header i");
-        headerIcon.style.color = data.color;
-        
-        // Update Text
-        const headerSpan = document.getElementById("md-header").querySelector("span");
-        headerSpan.innerText = data.title;
-        headerSpan.style.color = data.color;
-
-        document.getElementById("md-desc").innerText = data.desc;
-        
-        // Update Bars
-        document.getElementById("md-eff-val").innerText = data.eff + "%";
-        document.getElementById("md-eff-fill").style.width = data.eff + "%";
-        document.getElementById("md-eff-fill").style.background = data.color;
-        
-        document.getElementById("md-safe-val").innerText = data.safe + "%";
-        document.getElementById("md-safe-fill").style.width = data.safe + "%";
-        document.getElementById("md-safe-fill").style.background = data.color;
-        
-        // Border accent
-        details.style.borderLeft = `4px solid ${data.color}`;
-      }
-
-      function updateTelemetry() {
-        const route = routes[activeMode];
-        const risk = route.baseRisk;
-        const speed = route.speed;
-        
-        document.getElementById("tele-risk").innerText = risk;
-        document.getElementById("tele-speed").innerText = speed;
-        
-        // Update Map Chip
-        const chip = document.getElementById("map-status-chip");
-        if(risk > 5) {
-            chip.innerHTML = '<i class="fas fa-exclamation-triangle"></i> HIGH RISK';
-            chip.style.color = "var(--accent-fast)";
-            chip.style.borderColor = "var(--accent-fast)";
-        } else {
-            chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
-            chip.style.color = "var(--accent-safe)";
-            chip.style.borderColor = "rgba(255,255,255,0.1)";
-        }
-      }
-
-      function toggleTelemetry() {
-        const overlay = document.getElementById("telemetry-overlay");
-        const icon = document.getElementById("tele-toggle-icon");
-        overlay.classList.toggle("collapsed");
-        
-        if(overlay.classList.contains("collapsed")) {
-            icon.className = "fas fa-eye-slash";
-        } else {
-            icon.className = "fas fa-eye";
-        }
-      }
+    }
 
 
-      // --- Agent Animation ---
-      function animateAgentLoop() {
-        const agent = document.getElementById("agent");
-        let progress = 0;
-        function step() {
-            const path = document.getElementById(routes[activeMode].id);
-            if(path && agent) {
-                const len = path.getTotalLength();
-                progress += routes[activeMode].speed * 0.03;
-                if(progress > len) progress = 0;
-                
-                const pt = path.getPointAtLength(progress);
-                const nextPt = path.getPointAtLength(Math.min(progress + 10, len));
-                const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * 180 / Math.PI;
-                
-                agent.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${angle})`);
-            }
-            requestAnimationFrame(step);
+    // --- Agent Animation ---
+    function animateAgentLoop() {
+      const agent = document.getElementById("agent");
+      let progress = 0;
+      function step() {
+        const path = document.getElementById(routes[activeMode].id);
+        if (path && agent) {
+          const len = path.getTotalLength();
+          progress += routes[activeMode].speed * 0.03;
+          if (progress > len) progress = 0;
+
+          const pt = path.getPointAtLength(progress);
+          const nextPt = path.getPointAtLength(Math.min(progress + 10, len));
+          const angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * 180 / Math.PI;
+
+          agent.setAttribute("transform", `translate(${pt.x}, ${pt.y}) rotate(${angle})`);
         }
         requestAnimationFrame(step);
       }
-      
-      setRoute("fastest");
-      animateAgentLoop();
+      requestAnimationFrame(step);
+    }
 
-      // --- Weather Logic ---
-      async function refreshWeather() {
-        const url = "https://api.open-meteo.com/v1/forecast?latitude=37.456&longitude=126.705&current_weather=true&timezone=Asia%2FSeoul";
-        try {
-            const res = await fetch(url);
-            if(!res.ok) throw new Error("Weather API Error");
-            const data = await res.json();
-            const cw = data.current_weather;
-            
-            document.getElementById("weather-temp").textContent = Math.round(cw.temperature) + "°";
-            document.getElementById("weather-wind").textContent = Math.round(cw.windspeed) + " km/h";
-            
-            // Decode Code
-            let label = "Clear";
-            let icon = "fa-sun";
-            const code = cw.weathercode;
-            if([1,2,3].includes(code)) { label="Clouds"; icon="fa-cloud"; }
-            else if([45,48].includes(code)) { label="Fog"; icon="fa-smog"; }
-            else if([51,53,55,61,63,65,80,81,82].includes(code)) { label="Rain"; icon="fa-cloud-showers-heavy"; }
-            else if([71,73,75,77,85,86].includes(code)) { label="Snow"; icon="fa-snowflake"; }
-            
-            document.getElementById("weather-desc").textContent = label;
-            document.getElementById("weather-icon").className = `fas ${icon}`;
-            
-            const t = new Date();
-            document.getElementById("weather-updated").textContent = t.toLocaleTimeString("en-US", {hour12:false, hour:'2-digit', minute:'2-digit'});
-            
-        } catch(e) {
-            console.error(e);
-            document.getElementById("weather-desc").textContent = "Offline";
-        }
+    setRoute("fastest");
+    animateAgentLoop();
+
+    // --- Weather Logic ---
+    async function refreshWeather() {
+      const url = "https://api.open-meteo.com/v1/forecast?latitude=37.456&longitude=126.705&current_weather=true&timezone=Asia%2FSeoul";
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Weather API Error");
+        const data = await res.json();
+        const cw = data.current_weather;
+
+        document.getElementById("weather-temp").textContent = Math.round(cw.temperature) + "°";
+        document.getElementById("weather-wind").textContent = Math.round(cw.windspeed) + " km/h";
+
+        // Decode Code
+        let label = "Clear";
+        let icon = "fa-sun";
+        const code = cw.weathercode;
+        if ([1, 2, 3].includes(code)) { label = "Clouds"; icon = "fa-cloud"; }
+        else if ([45, 48].includes(code)) { label = "Fog"; icon = "fa-smog"; }
+        else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) { label = "Rain"; icon = "fa-cloud-showers-heavy"; }
+        else if ([71, 73, 75, 77, 85, 86].includes(code)) { label = "Snow"; icon = "fa-snowflake"; }
+
+        document.getElementById("weather-desc").textContent = label;
+        document.getElementById("weather-icon").className = `fas ${icon}`;
+
+        const t = new Date();
+        document.getElementById("weather-updated").textContent = t.toLocaleTimeString("en-US", { hour12: false, hour: '2-digit', minute: '2-digit' });
+
+      } catch (e) {
+        console.error(e);
+        document.getElementById("weather-desc").textContent = "Offline";
       }
-      refreshWeather();
-      setInterval(refreshWeather, 300000); // 5 mins
+    }
+    refreshWeather();
+    setInterval(refreshWeather, 300000); // 5 mins
 
-      // --- WebSocket & Battery ---
-      const canvas = document.getElementById("ai-layer");
-      const ctx = canvas.getContext("2d");
-      const img = document.getElementById("camera-stream");
-      const serverStatus = document.getElementById("server-status");
-      const batteryVal = document.getElementById("battery-val");
-      const batteryFill = document.getElementById("battery-fill");
+    // --- WebSocket & Battery ---
+    const canvas = document.getElementById("ai-layer");
+    const ctx = canvas.getContext("2d");
+    const img = document.getElementById("camera-stream");
+    const serverStatus = document.getElementById("server-status");
+    const batteryVal = document.getElementById("battery-val");
+    const batteryFill = document.getElementById("battery-fill");
 
-      let ws = null;
-      
-      function connectWS() {
-        ws = new WebSocket("ws://localhost:8765");
-        
-        ws.onopen = () => {
-            serverStatus.textContent = "CONNECTED";
-            serverStatus.style.color = "var(--accent-safe)";
-        };
-        
-        ws.onclose = () => {
-            serverStatus.textContent = "DISCONNECTED";
-            serverStatus.style.color = "var(--accent-fast)";
-            setTimeout(connectWS, 2000);
-        };
-        
-        ws.onmessage = (event) => {
-            const data = JSON.parse(event.data);
-            
-            // Update Battery
-            if(data.battery !== undefined) {
-                if(data.battery === "ERR" || data.battery === "--") {
-                    batteryVal.textContent = "ERR";
-                    batteryFill.style.width = "0%";
-                    batteryFill.style.background = "var(--accent-fast)";
-                } else {
-                    const pct = parseInt(data.battery);
-                    batteryVal.textContent = pct + "%";
-                    batteryFill.style.width = pct + "%";
-                    
-                    if(pct < 20) batteryFill.style.background = "var(--accent-fast)";
-                    else if(pct < 50) batteryFill.style.background = "#ffcc00";
-                    else batteryFill.style.background = "var(--accent-safe)";
-                }
-            }
-            
-            // Draw AI
-            drawAI(data);
-        };
-      }
-      
-      function drawAI(data) {
-        // Match canvas to video size
-        if(img.clientWidth && img.clientHeight) {
-            canvas.width = img.clientWidth;
-            canvas.height = img.clientHeight;
+    let ws = null;
+
+    function connectWS() {
+      ws = new WebSocket("ws://localhost:8765");
+
+      ws.onopen = () => {
+        serverStatus.textContent = "CONNECTED";
+        serverStatus.style.color = "var(--accent-safe)";
+      };
+
+      ws.onclose = () => {
+        serverStatus.textContent = "DISCONNECTED";
+        serverStatus.style.color = "var(--accent-fast)";
+        setTimeout(connectWS, 2000);
+      };
+
+      ws.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        // Update Battery
+        if (data.battery !== undefined) {
+          if (data.battery === "ERR" || data.battery === "--") {
+            batteryVal.textContent = "ERR";
+            batteryFill.style.width = "0%";
+            batteryFill.style.background = "var(--accent-fast)";
+          } else {
+            const pct = parseInt(data.battery);
+            batteryVal.textContent = pct + "%";
+            batteryFill.style.width = pct + "%";
+
+            if (pct < 20) batteryFill.style.background = "var(--accent-fast)";
+            else if (pct < 50) batteryFill.style.background = "#ffcc00";
+            else batteryFill.style.background = "var(--accent-safe)";
+          }
         }
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        if(data.objects) {
-            ctx.strokeStyle = "#15ffb9";
-            ctx.lineWidth = 2;
-            ctx.font = "bold 12px 'Space Mono'";
-            
-            data.objects.forEach(obj => {
-                const [nx1, ny1, nx2, ny2] = obj.bbox;
-                const x = nx1 * canvas.width;
-                const y = ny1 * canvas.height;
-                const w = (nx2 - nx1) * canvas.width;
-                const h = (ny2 - ny1) * canvas.height;
-                
-                ctx.strokeRect(x, y, w, h);
-                ctx.fillStyle = "#15ffb9";
-                ctx.fillText(`${obj.label} ${Math.round(obj.conf*100)}%`, x, y - 5);
-            });
-        }
-      }
-      
-      connectWS();
 
-    </script>
-  </body>
+        // Draw AI
+        drawAI(data);
+      };
+    }
+
+    function drawAI(data) {
+      // Match canvas to video size
+      if (img.clientWidth && img.clientHeight) {
+        canvas.width = img.clientWidth;
+        canvas.height = img.clientHeight;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (data.objects) {
+        ctx.strokeStyle = "#15ffb9";
+        ctx.lineWidth = 2;
+        ctx.font = "bold 12px 'Space Mono'";
+
+        data.objects.forEach(obj => {
+          const [nx1, ny1, nx2, ny2] = obj.bbox;
+          const x = nx1 * canvas.width;
+          const y = ny1 * canvas.height;
+          const w = (nx2 - nx1) * canvas.width;
+          const h = (ny2 - ny1) * canvas.height;
+
+          ctx.strokeRect(x, y, w, h);
+          ctx.fillStyle = "#15ffb9";
+          ctx.fillText(`${obj.label} ${Math.round(obj.conf * 100)}%`, x, y - 5);
+        });
+      }
+    }
+
+    connectWS();
+
+  </script>
+</body>
+
 </html>
