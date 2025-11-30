@@ -642,19 +642,21 @@
         </g>
 
         <!-- Routes -->
-        <path id="path-fastest" class="route-path active" d="M -100 900 L 900 -100" stroke="#ff0055" />
-        <path id="path-comfort" class="route-path" d="M 20 1200 L 20 20 L 1200 20" stroke="#00ffaa" />
-        <path id="path-scenic" class="route-path" d="M -400 780 L 780 780 L 780 -400" stroke="#00aaff" />
+        <!-- Routes -->
+        <path id="path-fastest" class="route-path active" d="M 20 780 L 780 20" stroke="#ff0055" />
+        <path id="path-comfort" class="route-path" d="M 20 780 L 20 20 L 780 20" stroke="#00ffaa" />
+        <path id="path-scenic" class="route-path" d="M 20 780 L 780 780 L 780 20" stroke="#00aaff" />
 
         <!-- POIs -->
         <g class="pois">
-          <g transform="translate(20,780)">
-            <circle r="6" class="poi-marker gas" />
-            <text x="12" y="3" class="poi-label">FUEL</text>
+          <g id="marker-home" transform="translate(20,780)">
+            <circle r="8" class="poi-marker" fill="#ffcc00" stroke="white" stroke-width="2" />
+            <text x="12" y="3" class="poi-label" fill="#ffcc00" style="font-weight:bold; font-size:12px;">HOME</text>
           </g>
-          <g transform="translate(780,20)">
-            <circle r="6" class="poi-marker waypoint" />
-            <text x="12" y="3" class="poi-label">HUB</text>
+          <g id="marker-dest" transform="translate(780,20)">
+            <circle r="8" class="poi-marker" fill="#00aaff" stroke="white" stroke-width="2" />
+            <text x="12" y="3" class="poi-label" fill="#00aaff"
+              style="font-weight:bold; font-size:12px;">DESTINATION</text>
           </g>
         </g>
 
@@ -900,7 +902,8 @@
     }
 
     setRoute("fastest");
-    animateAgentLoop();
+    setRoute("fastest");
+    // animateAgentLoop(); // Disabled to prevent random movement
 
     // --- Weather Logic ---
     async function refreshWeather() {
@@ -953,10 +956,10 @@
     let ws = null;
 
     // Map Scaling Configuration
-    // Adjust these to match your SVG map coordinates to ROS coordinates
+    // Aligning (0,0) ROS to the "HOME" position (20, 780) in SVG
     const MAP_SCALE = 100; // Pixels per meter
-    const MAP_OFFSET_X = 400; // Center X in SVG
-    const MAP_OFFSET_Y = 400; // Center Y in SVG
+    const MAP_OFFSET_X = 20; // Bottom Left X
+    const MAP_OFFSET_Y = 780; // Bottom Left Y
 
     function connectWS() {
       ws = new WebSocket("ws://localhost:8765");
@@ -1005,54 +1008,90 @@
     function updateAgentPosition(status) {
       const agent = document.getElementById("agent");
 
-      let rosX = 0;
-      let rosY = 0;
-      let yaw = 0;
+      // Visual Coordinates for the "Illusion"
+      // We now use the SVG paths themselves which are trimmed to Home/Target
+      const pathId = routes[activeMode].id;
+      const pathEl = document.getElementById(pathId);
 
-      // 1. Determine Target Position (Snap if reached)
-      if (status.home_reached && status.home) {
-        rosX = status.home.x;
-        rosY = status.home.y;
-        // Keep current yaw or snap? Let's keep real yaw for realism
-        if (status.current_pose) yaw = status.current_pose.yaw;
-      } else if (status.dest_reached && status.destination) {
-        rosX = status.destination.x;
-        rosY = status.destination.y;
-        if (status.current_pose) yaw = status.current_pose.yaw;
+      let svgX = 20; // Default Home
+      let svgY = 780;
+      let angleDeg = 0;
+
+      // Check if we have a valid route to interpolate
+      if (status.home && status.destination && status.current_pose && pathEl) {
+        // Calculate Physical Distances
+        const dx = status.destination.x - status.home.x;
+        const dy = status.destination.y - status.home.y;
+        const totalDist = Math.sqrt(dx * dx + dy * dy);
+
+        const curDx = status.current_pose.x - status.home.x;
+        const curDy = status.current_pose.y - status.home.y;
+        const currentDist = Math.sqrt(curDx * curDx + curDy * curDy);
+
+        // Calculate Progress Ratio (0.0 to 1.0)
+        let progress = 0;
+        if (totalDist > 0.01) {
+          progress = currentDist / totalDist;
+        }
+
+        // Clamp Progress
+        if (progress < 0) progress = 0;
+        if (progress > 1) progress = 1;
+
+        // Override if flags are set
+        if (status.home_reached) progress = 0;
+        if (status.dest_reached) progress = 1;
+
+        // Interpolate using SVG Path
+        const len = pathEl.getTotalLength();
+        const pt = pathEl.getPointAtLength(progress * len);
+
+        svgX = pt.x;
+        svgY = pt.y;
+
+        // Calculate Rotation (Tangent)
+        // We look slightly ahead to get the angle
+        // But if we are at the end, look slightly back
+        let nextPt;
+        if (progress < 0.99) {
+          nextPt = pathEl.getPointAtLength(Math.min((progress + 0.01) * len, len));
+          angleDeg = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x) * (180 / Math.PI);
+        } else {
+          const prevPt = pathEl.getPointAtLength(Math.max((progress - 0.01) * len, 0));
+          angleDeg = Math.atan2(pt.y - prevPt.y, pt.x - prevPt.x) * (180 / Math.PI);
+        }
+
+        // Optional: Blend with real yaw? 
+        // The user wants "stable" movement synced with turtlebot.
+        // Following the path tangent makes it look like it's driving ON the road.
+        // Real yaw might be spinning in place which looks weird if the car is moving linearly on a track.
+        // Let's stick to path tangent for the "Illusion" of driving the route.
+
       } else if (status.current_pose) {
-        rosX = status.current_pose.x;
-        rosY = status.current_pose.y;
-        yaw = status.current_pose.yaw;
+        // Fallback
+        svgX = (status.current_pose.x * MAP_SCALE) + 20;
+        svgY = (-status.current_pose.y * MAP_SCALE) + 780;
+        angleDeg = -status.current_pose.yaw * (180 / Math.PI);
       } else {
-        return; // No data
+        return;
       }
-
-      // 2. Convert to SVG Coordinates
-      // ROS X = SVG X, ROS Y = SVG -Y (usually)
-      const svgX = (rosX * MAP_SCALE) + MAP_OFFSET_X;
-      const svgY = (-rosY * MAP_SCALE) + MAP_OFFSET_Y;
-
-      // 3. Convert Yaw (Radians) to Degrees
-      // ROS: 0 is East, CCW is positive. SVG: 0 is East, CW is positive (usually)
-      // Actually SVG rotate is CW positive. ROS is CCW positive. So negate angle.
-      const angleDeg = -yaw * (180 / Math.PI);
 
       agent.setAttribute("transform", `translate(${svgX}, ${svgY}) rotate(${angleDeg})`);
 
-      // 4. Update Markers
-      updateMarker("marker-home", status.home, "fa-home", "#00ffaa");
-      updateMarker("marker-dest", status.destination, "fa-map-marker-alt", "#ff0055");
+      // 4. Update Markers (Fixed for Illusion)
+      // updateMarker("marker-home", status.home, "fa-home", "#ffcc00");
+      // updateMarker("marker-dest", status.destination, "fa-map-marker-alt", "#00aaff");
 
       // 5. Update Status Chip for Arrival
       const chip = document.getElementById("map-status-chip");
       if (status.home_reached) {
         chip.innerHTML = '<i class="fas fa-check-circle"></i> HOME REACHED';
-        chip.style.color = "#00ffaa";
-        chip.style.borderColor = "#00ffaa";
+        chip.style.color = "#ffcc00";
+        chip.style.borderColor = "#ffcc00";
       } else if (status.dest_reached) {
-        chip.innerHTML = '<i class="fas fa-flag-checkered"></i> DESTINATION REACHED';
-        chip.style.color = "#ff0055";
-        chip.style.borderColor = "#ff0055";
+        chip.innerHTML = '<i class="fas fa-flag-checkered"></i> TARGET REACHED';
+        chip.style.color = "#00aaff";
+        chip.style.borderColor = "#00aaff";
       } else {
         if (!chip.innerHTML.includes("HIGH RISK")) {
           chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
