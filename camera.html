@@ -454,8 +454,7 @@
         </div>
         <div class="camera-module">
           <!-- Stream Image -->
-          <img id="camera-stream" src="http://172.20.10.10:8080/?action=stream" alt="Stream"
-            onerror="handleStreamError()" onload="handleStreamSuccess()" />
+          <img id="camera-stream" src="http://172.20.10.10:8080/?action=stream" alt="Stream" />
           <!-- AI Overlay -->
           <canvas id="ai-layer"></canvas>
           <!-- Error Placeholder -->
@@ -942,6 +941,11 @@
     const canvas = document.getElementById("ai-layer");
     const ctx = canvas.getContext("2d");
     const img = document.getElementById("camera-stream");
+
+    // Attach listeners here to avoid ReferenceError with inline attributes
+    img.onload = handleStreamSuccess;
+    img.onerror = handleStreamError;
+
     const serverStatus = document.getElementById("server-status");
     const batteryVal = document.getElementById("battery-val");
     const batteryFill = document.getElementById("battery-fill");
@@ -1008,7 +1012,6 @@
         const svgY = (-status.current_pose.y * MAP_SCALE) + MAP_OFFSET_Y;
 
         // Simple rotation handling if available, otherwise 0
-        // If you want rotation, you'd need to send orientation quaternion/yaw in nav_status
         const angle = 0;
 
         agent.setAttribute("transform", `translate(${svgX}, ${svgY}) rotate(${angle})`);
@@ -1019,6 +1022,34 @@
 
       // 3. Update Destination Marker
       updateMarker("marker-dest", status.destination, "fa-map-marker-alt", "#ff0055");
+
+      // 4. Update Status Chip for Arrival
+      const chip = document.getElementById("map-status-chip");
+      if (status.home_reached) {
+        chip.innerHTML = '<i class="fas fa-check-circle"></i> HOME REACHED';
+        chip.style.color = "#00ffaa";
+        chip.style.borderColor = "#00ffaa";
+      } else if (status.dest_reached) {
+        chip.innerHTML = '<i class="fas fa-flag-checkered"></i> DESTINATION REACHED';
+        chip.style.color = "#ff0055";
+        chip.style.borderColor = "#ff0055";
+      } else {
+        // Reset to default if not reached
+        // Only reset if we are not in High Risk (which is handled by updateTelemetry)
+        // We need to coordinate with updateTelemetry. 
+        // For now, let's just let updateTelemetry overwrite it if it runs, 
+        // but we should prioritize Arrival messages if they are active.
+        // A simple way is to check if we are NOT reached, then let telemetry handle it.
+        // But updateTelemetry runs on a loop or event? 
+        // updateTelemetry is called in setRoute.
+        // Let's just leave it, or reset it to "Route Stable" if we want to clear the message.
+        // Better: Let's add a global flag or just reset it here if no risk.
+        if (!chip.innerHTML.includes("HIGH RISK")) {
+          chip.innerHTML = '<i class="fas fa-shield-alt"></i> ROUTE STABLE';
+          chip.style.color = "var(--accent-safe)";
+          chip.style.borderColor = "rgba(255,255,255,0.1)";
+        }
+      }
     }
 
     function updateMarker(id, pos, iconClass, color) {
