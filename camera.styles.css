@@ -1,0 +1,51 @@
+:root {
+  --bg-dark: #05060a;
+  --panel-bg: rgba(10, 12, 16, 0.95);
+  --border-color: #1e262c;
+  --text-main: #d8dde2;
+  --text-muted: #7a8895;
+  --primary-color: #00ff88;
+  --accent-fast: #ff2f6d;
+  --accent-safe: #15ffb9;
+  --accent-scenic: #29b3ff;
+}
+
+* { box-sizing: border-box; }
+
+body { font-family: "Space Mono", monospace; color: var(--text-main); }
+
+/* Navbar */
+.nav-container { max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; }
+.logo { font-family: "Oswald", sans-serif; font-size: 1.2rem; font-weight: 700; color: white; text-decoration: none; letter-spacing: 2px; border: 1px solid white; padding: 4px 10px; }
+.nav-links { list-style: none; display: flex; gap: 1rem; }
+.nav-links a { color: var(--text-muted); text-decoration: none; font-size: .85rem; text-transform: uppercase; }
+
+/* CRT overlay + cursor */
+.crt-overlay { position: fixed; pointer-events: none; left:0; top:0; right:0; bottom:0; background: repeating-linear-gradient( to bottom, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 2px, transparent 4px ); opacity: .3; }
+#custom-cursor { position: fixed; width: 10px; height: 10px; border-radius: 50%; background: var(--accent-safe); pointer-events: none; transform: translate(-50%, -50%); mix-blend-mode: screen; z-index: 2000; }
+
+/* Map visuals */
+.map-bg { fill: #0b0f14; }
+.building { fill: #14191d; stroke: rgba(255,255,255,0.05); stroke-width: 1; }
+.building-3d { fill: rgba(0,0,0,0.35); }
+.road-casing { stroke: #0c1217; fill: none; }
+.road-core { stroke: #1a242b; fill: none; }
+.road-centerline { stroke: #2e3f48; stroke-dasharray: 6 10; stroke-width: 2; fill: none; }
+.street-label { fill: #6f7f8c; font-size: 12px; opacity: .7; }
+
+/* Route paths */
+.route-path { fill: none; stroke-width: 6; filter: drop-shadow(0 0 6px rgba(255,255,255,0.1)); opacity: 0; }
+.route-path.active { opacity: 1; }
+
+/* Agent */
+.nav-agent .car-body { fill: #0ff; opacity: .9; }
+.nav-agent .car-cabin { fill: #003b3b; }
+.nav-agent .car-light { fill: #fffbe6; }
+.nav-agent .car-shadow { stroke: rgba(0,0,0,0.5); stroke-width: 3; }
+
+/* POIs */
+.poi-label { font-size: 12px; font-family: "Space Mono", monospace; }
+
+/* Utility */
+.loader { width: 36px; height: 36px; border: 3px solid rgba(21,255,185,.25); border-top-color: var(--accent-safe); border-radius: 50%; animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

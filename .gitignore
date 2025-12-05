@@ -1,1 +1,18 @@
-/env
+# Python environments
+env/
+.env
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# VSCode
+.vscode/
+
+# OS
+Thumbs.db
+.DS_Store
