@@ -8,5 +8,7 @@ opencv-python
 # Optional - AI room audit (heavy on a Pi: pulls torch). Skip if the Pi struggles.
 ultralytics
 
-# Optional - joystick button trigger
-pygame
+# Joystick trigger now uses the ROS /joy topic (rclpy + sensor_msgs, from your ROS
+# install - NOT pip). pygame is only needed for the legacy USE_JOYSTICK path, which
+# you should leave OFF while a ROS joy_node owns the gamepad.
+# pygame

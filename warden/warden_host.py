@@ -9,7 +9,7 @@ Runs on the Raspberry Pi (the robot's brain). It:
     detection on the camera (the "room audit")
   * ON DEMAND: runs an optical hidden-camera inspection sweep (servo tilt + LED flash +
     differential glint detection + multi-angle persistence), triggered by the dashboard
-    SCAN button or a joystick button
+    SCAN button or the X button on the ROS /joy gamepad
   * fuses optical + thermal + RF into a confidence score
   * serves a live web dashboard at http://<pi-ip>:8000
 
@@ -36,7 +36,7 @@ except Exception:
     _HAVE_YOLO = False
 
 try:
-    import pygame                         # pip install pygame
+    import pygame                         # pip install pygame  (only for USE_JOYSTICK pygame path)
     _HAVE_PYGAME = True
 except Exception:
     _HAVE_PYGAME = False
@@ -61,17 +61,21 @@ class CFG:
     SENSOR_PERIOD = 2.0            # seconds between ENV/THERMAL/RF polls
 
     # --- YOLO object detection (AI room audit) ---
-    USE_YOLO = True                # set False if the Pi is too slow
+    # NOTE: this reads the camera CONTINUOUSLY. Set USE_YOLO = False if you want the
+    # camera idle except during an X-triggered inspection sweep.
+    USE_YOLO = True                # set False if the Pi is too slow / want camera idle
     YOLO_MODEL = "yolov8n.pt"      # 'n' = nano, lightest; downloads on first run
     YOLO_PERIOD = 1.5              # seconds between detections (Pi is slow)
     YOLO_CONF = 0.45
 
-    # --- joystick trigger (optional) ---
-    # If you drive the TurtleBot with the SAME pad through ROS, two programs reading the
-    # one joystick device can conflict - in that case keep this False and use the
-    # dashboard SCAN button (or subscribe to the ROS /joy topic instead).
-    USE_JOYSTICK = False
-    JOY_SCAN_BUTTON = 0            # which gamepad button starts a scan
+    # --- joystick trigger ---
+    # You already run a ROS joy_node for driving. Trigger the scan from the ROS /joy
+    # topic, NOT pygame - two readers on one gamepad device conflict. Leave the pygame
+    # path (USE_JOYSTICK) OFF while ROS joy_node is running.
+    USE_JOYSTICK = False           # pygame path: leave OFF while ROS joy_node runs
+    USE_ROS_JOY = True             # subscribe to ROS /joy for the X-button trigger
+    JOY_TOPIC = "/joy"
+    JOY_SCAN_BUTTON = 2            # X index - VERIFY with: ros2 topic echo /joy
 
     # --- optical inspection sweep ---
     SERVO_ANGLES = [30, 60, 90, 120, 150]   # tilt steps the head sweeps through
@@ -303,8 +307,10 @@ def inspection_worker(esp, cap):
                 STATE.status = "idle"
 
 
-# ============================== JOYSTICK ==============================
+# ============================== JOYSTICK (pygame - legacy/standalone) ==============================
 def joystick_loop():
+    """pygame path: opens the gamepad device directly. Do NOT use this while a ROS
+    joy_node is running on the same pad - use ros_joy_loop() instead."""
     if not CFG.USE_JOYSTICK:
         return
     if not _HAVE_PYGAME:
@@ -324,6 +330,47 @@ def joystick_loop():
                 print("[joy] scan button pressed")
                 SCAN_REQUEST.set()
         time.sleep(0.05)
+
+
+# ============================== ROS /joy TRIGGER ==============================
+def ros_joy_loop():
+    """Start a scan on the X button, read from the ROS /joy topic.
+
+    Reuses the existing joy_node (the one ROS teleop already runs), so it does NOT
+    open /dev/input/js0 directly and won't fight ROS for the gamepad.
+    """
+    if not CFG.USE_ROS_JOY:
+        return
+    try:
+        import rclpy
+        from rclpy.node import Node
+        from sensor_msgs.msg import Joy
+    except Exception as ex:
+        print("[joy] rclpy/sensor_msgs unavailable - ROS joy trigger off:", ex)
+        return
+
+    class JoyTrigger(Node):
+        def __init__(self):
+            super().__init__('warden_joy_trigger')
+            self.prev = 0
+            self.create_subscription(Joy, CFG.JOY_TOPIC, self.cb, 10)
+
+        def cb(self, msg):
+            b = CFG.JOY_SCAN_BUTTON
+            if b < len(msg.buttons):
+                cur = msg.buttons[b]
+                if cur == 1 and self.prev == 0:        # rising edge only
+                    print("[joy] X pressed -> scan")
+                    SCAN_REQUEST.set()
+                self.prev = cur
+
+    rclpy.init()
+    node = JoyTrigger()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 
 # ============================== DASHBOARD ==============================
@@ -453,7 +500,8 @@ def main():
 
     threading.Thread(target=sensor_loop, args=(esp,), daemon=True).start()
     threading.Thread(target=yolo_loop, args=(cap,), daemon=True).start()
-    threading.Thread(target=joystick_loop, daemon=True).start()
+    threading.Thread(target=joystick_loop, daemon=True).start()        # pygame path (off by default)
+    threading.Thread(target=ros_joy_loop, daemon=True).start()         # ROS /joy X-button trigger
     threading.Thread(target=inspection_worker, args=(esp, cap), daemon=True).start()
 
     print(f"Dashboard: http://<this-pi-ip>:{CFG.SERVER_PORT}")
