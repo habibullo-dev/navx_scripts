@@ -1,0 +1,12 @@
+# Core (required)
+pyserial
+flask
+numpy
+# opencv: on a Pi, prefer  sudo apt install python3-opencv  (pip build is slow/heavy)
+opencv-python
+
+# Optional - AI room audit (heavy on a Pi: pulls torch). Skip if the Pi struggles.
+ultralytics
+
+# Optional - joystick button trigger
+pygame
